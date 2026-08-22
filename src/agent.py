@@ -16,7 +16,7 @@ class Agent:
         self.llm:   LLM          = llm
         self.tools: ToolRegistry = tools
 
-        self.history: list[Message | ToolResult | ToolCall] = []
+        self.history: list[Message | ToolResult] = []
 
 
     def run(self, prompt: str):

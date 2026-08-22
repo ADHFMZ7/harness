@@ -36,7 +36,7 @@ class Message:
 
 @dataclass
 class LLMRequest:
-    messages: list[Message | ToolResult | ToolCall]
+    messages: list[Message | ToolResult]
     tools:    list[Tool]
 
 @dataclass

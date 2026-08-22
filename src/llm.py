@@ -28,6 +28,8 @@ class OllamaLLM(LLM):
             think=True
         )
 
+        # print(response)
+
         if response.message.tool_calls:
             tools = []
             for tool in response.message.tool_calls:
@@ -36,12 +38,29 @@ class OllamaLLM(LLM):
         else:
             tools = []
 
-        msg = Message(Role.AGENT, response.message.content or '')
-        return LLMResponse(msg, tools)
+        msg = Message(Role.AGENT, response.message.content or '', tools)
+        return LLMResponse(msg)
 
-    def asdict(self, message: Message | ToolResult) -> Mapping[str, str]:
+    def asdict(self, message: Message | ToolResult):
+
         if isinstance(message, Message):
-            return asdict(message)
+            result = {
+                "role": message.role,
+                "content": message.content,
+            }
+
+            if message.tool_calls:
+                result["tool_calls"] = [
+                    {
+                        "function": {
+                            "name": call.name,
+                            "arguments": call.arguments,
+                        }
+                    }
+                    for call in message.tool_calls
+                ]
+
+            return result
         elif isinstance(message, ToolResult):
             return {'role': 'tool', 'content':str(message.result), 'tool_name':message.tool_name}
         
