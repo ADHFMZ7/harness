@@ -2,39 +2,11 @@
 # abstraction for llm calls
 
 
-from typing import Protocol, Any
-from dataclasses import dataclass, asdict
-from enum import Enum
-from tools import ToolRegistry, ToolCall
+from typing import Protocol, Mapping
+from dataclasses import asdict
+from models import ToolCall, LLMRequest, LLMResponse, Message, Role, ToolResult
 import ollama
 
-class Role(Enum):
-    USER='user'
-    AGENT='assistant'
-
-@dataclass
-class Message:
-    role: Role
-    content: str
-
-    def to_form(self, provider: str) -> Any:
-        '''Convert messages to format required by provider'''
-
-        if provider == 'ollama':
-            return asdict(self)
-
-        else:
-            print("Provider not recognized")
-
-@dataclass
-class LLMRequest:
-    messages: list[Message]
-    tools:    ToolRegistry
-
-@dataclass
-class LLMResponse:
-    message: Message
-    toolcalls: list[ToolCall]
 
 class LLM(Protocol):
     def generate(self, request: LLMRequest) -> LLMResponse: ...
@@ -42,21 +14,24 @@ class LLM(Protocol):
 
 class OllamaLLM(LLM):
 
-    def __init__(self, model: str = 'qwen3.5:9b', provider: str = 'ollama'):
+    def __init__(self, model: str = 'qwen3.5:9b'):
         self.model = model
-        self.provider = provider
 
     def generate(self, request: LLMRequest) -> LLMResponse:
+        # TODO: Convert tools to ollama version?
+
+
         response = ollama.chat(
             model=self.model,
-            tools=request.tools.get_tools(self.provider),
-            messages=[message.to_form('ollama') for message in request.messages], 
-            think=True)
+            tools=[tool.function for tool in request.tools],
+            messages=[self.asdict(message) for message in request.messages] ,
+            think=True
+        )
 
         if response.message.tool_calls:
             tools = []
             for tool in response.message.tool_calls:
-                tools.append(ToolCall(tool.Function.name, tool.Function.arguments))
+                tools.append(ToolCall(tool.function.name, tool.function.arguments))
 
         else:
             tools = []
@@ -64,3 +39,9 @@ class OllamaLLM(LLM):
         msg = Message(Role.AGENT, response.message.content or '')
         return LLMResponse(msg, tools)
 
+    def asdict(self, message: Message | ToolResult) -> Mapping[str, str]:
+        if isinstance(message, Message):
+            return asdict(message)
+        elif isinstance(message, ToolResult):
+            return {'role': 'tool', 'content':str(message.result), 'tool_name':message.tool_name}
+        

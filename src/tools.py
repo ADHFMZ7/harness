@@ -1,8 +1,8 @@
 # tools.py
 # registry of tools agent can access
 
-from typing import Any, Callable, Mapping
-from dataclasses import dataclass
+from typing import Any, Callable
+from models import Tool
 
 '''
 Tools I eventually want to support
@@ -10,20 +10,7 @@ Tools I eventually want to support
 - Web search
 '''
 # Types of tools?
-
-@dataclass
-class Tool:
-    name: str
-    description: str
-    function: Callable
-
-    def __call__(self, **kwargs: Any) -> Any:
-        return self.function(**kwargs)
-
-@dataclass 
-class ToolCall:
-    name: str
-    arguments: Mapping[str, Any]
+    
 
 class ToolRegistry:
 
@@ -46,12 +33,14 @@ class ToolRegistry:
         self.tools[tool.name] = tool
         return function
 
-    def get_tools(self, provider: str): #Figure out type hints
-        if provider == 'ollama':
-            return [tool.function for tool in self.tools.values()]
-        else:
-            print("Invalid provider")
+    def get_tools(self) -> list[Tool]: 
+        return list(self.tools.values())
 
+    def __getitem__(self, key:str) -> Tool:
+        tool = self.tools.get(key)
+        if not tool:
+            raise KeyError(f"Tool {key} does not exist")
+        return tool
 
 registry = ToolRegistry()
 

@@ -3,7 +3,8 @@
 from enum import Enum
 from dataclasses import dataclass
 
-from llm import LLM, LLMRequest, LLMResponse, Message, Role
+from llm import LLM
+from models import LLMRequest, LLMResponse, Message, Role, ToolCall, ToolResult
 from tools import ToolRegistry
 
 # Agent needs some sort of memory later
@@ -12,10 +13,10 @@ from tools import ToolRegistry
 class Agent:
 
     def __init__(self, llm: LLM, tools: ToolRegistry):
-        self.llm = llm
-        self.tools = tools
+        self.llm:   LLM          = llm
+        self.tools: ToolRegistry = tools
 
-        self.history: list[Message] = []
+        self.history: list[Message | ToolResult | ToolCall] = []
 
 
     def run(self, prompt: str):
@@ -24,19 +25,38 @@ class Agent:
 
         while True:
 
-            message = LLMRequest(self.history, self.tools)
+            request = LLMRequest(self.history, self.tools.get_tools())
 
-            resp: LLMResponse = self.llm.generate(message)
-            self.history.append(resp.message)
+            response = self.llm.generate(request)
 
-            if resp.tool_calls:
+            self.history.append(response.message)
+
+            if response.message.tool_calls:
+
                 # run those tool calls.
-                self.tools[]
+                results = self.execute_toolcalls(response.message.tool_calls) # list[ToolResult]
+                for result in results:
+                    self.history.append(result)
 
             else:
-                yield resp.message.content
+                # No more tool calls, request is likely complete
+                yield response.message.content
                 break
 
-            # token to yield execution? For now just break
-
         return
+
+    def execute_toolcalls(self, toolcalls: list[ToolCall]) -> list[ToolResult]:
+
+        results = []
+        for call in toolcalls:
+         
+            tool = self.tools[call.name]
+            output = tool(**call.arguments)
+
+            print(f"Executing toolcall: {tool.name}({call.arguments}) = {output}")
+
+            results.append(
+                ToolResult(output, call.name)
+            )
+
+        return results
