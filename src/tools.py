@@ -9,8 +9,6 @@ Tools I eventually want to support
 - File i/o
 - Web search
 '''
-# Types of tools?
-    
 
 class ToolRegistry:
 

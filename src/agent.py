@@ -1,10 +1,7 @@
 # agent.py
 
-from enum import Enum
-from dataclasses import dataclass
-
 from llm import LLM
-from models import LLMRequest, LLMResponse, Message, Role, ToolCall, ToolResult
+from models import LLMRequest, Message, Role, ToolCall, ToolResult
 from tools import ToolRegistry
 
 # Agent needs some sort of memory later
@@ -13,8 +10,8 @@ from tools import ToolRegistry
 class Agent:
 
     def __init__(self, llm: LLM, tools: ToolRegistry):
-        self.llm:   LLM          = llm
-        self.tools: ToolRegistry = tools
+        self.llm   = llm
+        self.tools = tools
 
         self.history: list[Message | ToolResult] = []
 
@@ -26,24 +23,19 @@ class Agent:
         while True:
 
             request = LLMRequest(self.history, self.tools.get_tools())
-
             response = self.llm.generate(request)
 
             self.history.append(response.message)
 
             if response.message.tool_calls:
 
-                # run those tool calls.
-                results = self.execute_toolcalls(response.message.tool_calls) # list[ToolResult]
-                for result in results:
-                    self.history.append(result)
+                self.history += self.execute_toolcalls(response.message.tool_calls)
 
             else:
                 # No more tool calls, request is likely complete
                 yield response.message.content
                 break
 
-        return
 
     def execute_toolcalls(self, toolcalls: list[ToolCall]) -> list[ToolResult]:
 

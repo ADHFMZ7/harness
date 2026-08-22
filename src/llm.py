@@ -1,12 +1,10 @@
 # llm.py
 # abstraction for llm calls
 
-
-from typing import Protocol, Mapping
-from dataclasses import asdict
-from models import ToolCall, LLMRequest, LLMResponse, Message, Role, ToolResult
+from typing import Protocol
 import ollama
 
+from models import ToolCall, LLMRequest, LLMResponse, Message, Role, ToolResult
 
 class LLM(Protocol):
     def generate(self, request: LLMRequest) -> LLMResponse: ...
@@ -18,30 +16,24 @@ class OllamaLLM(LLM):
         self.model = model
 
     def generate(self, request: LLMRequest) -> LLMResponse:
-        # TODO: Convert tools to ollama version?
-
 
         response = ollama.chat(
             model=self.model,
             tools=[tool.function for tool in request.tools],
-            messages=[self.asdict(message) for message in request.messages] ,
+            messages=[self.to_ollama(message) for message in request.messages],
             think=True
         )
 
-        # print(response)
+        tool_calls = [
+            ToolCall(tool.function.name, tool.function.arguments)
+            for tool in response.message.tool_calls or []
+        ]
 
-        if response.message.tool_calls:
-            tools = []
-            for tool in response.message.tool_calls:
-                tools.append(ToolCall(tool.function.name, tool.function.arguments))
+        return LLMResponse(
+            Message(Role.AGENT, response.message.content or '', tool_calls)
+        )
 
-        else:
-            tools = []
-
-        msg = Message(Role.AGENT, response.message.content or '', tools)
-        return LLMResponse(msg)
-
-    def asdict(self, message: Message | ToolResult):
+    def to_ollama(self, message: Message | ToolResult):
 
         if isinstance(message, Message):
             result = {

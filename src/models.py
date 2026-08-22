@@ -2,7 +2,7 @@
 
 from enum import Enum
 from typing import Any, Callable, Mapping 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class Tool:
@@ -32,7 +32,7 @@ class Role(Enum):
 class Message:
     role: Role
     content: str
-    tool_calls: list[ToolCall] | None = None
+    tool_calls: list[ToolCall] = field(default_factory=list)
 
 @dataclass
 class LLMRequest:
