@@ -3,6 +3,8 @@
 
 from typing import Any, Callable
 from models import Tool
+
+import aiofiles
 from aiofiles import os
 
 '''
@@ -46,14 +48,51 @@ registry = ToolRegistry()
 @registry.register
 def add(a: int, b: int) -> int:
     '''takes adds two integers a and b and returns their sum'''
-    print("Invoking tool add")
+    print(f"Tools: Adding numbers {a} {b}")
     return a + b
 
 
 @registry.register
 async def list_files(dir_path: str = '.') -> list[str]:
     '''lists files in directory specified by path'''
+    print(f"Tools: Listing files at path {dir_path}")
     return await os.listdir(dir_path)
+
+
+@registry.register
+async def read_file(path: str, start_line: int | None = None, end_line: int | None = None) -> Any:
+    '''Read contents of a file. Returns chunk bounded by provided range. If no range is provided, entire file is read'''
+
+    print(f"Tools: Reading file at path {path}")
+
+    lines = []
+
+    async with aiofiles.open(path, mode='r') as file:
+        
+        line_num = 1
+        while (line := await file.readline()):
+            if end_line and line_num > end_line:
+                break
+            if start_line and line_num < start_line:
+                continue 
+            lines.append(line)
+
+            line_num += 1
+
+    return ''.join(lines)
+
+# @registry.register
+# async def search_file(query: str, path: str, max_results: int = 50) -> Any:
+
+
+
+
+
+
+
+
+
+
 
 
 
