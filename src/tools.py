@@ -3,6 +3,7 @@
 
 from typing import Any, Callable
 from models import Tool
+from aiofiles import os
 
 '''
 Tools I eventually want to support
@@ -47,3 +48,12 @@ def add(a: int, b: int) -> int:
     '''takes adds two integers a and b and returns their sum'''
     print("Invoking tool add")
     return a + b
+
+
+@registry.register
+async def list_files(dir_path: str = '.') -> list[str]:
+    '''lists files in directory specified by path'''
+    return await os.listdir(dir_path)
+
+
+
