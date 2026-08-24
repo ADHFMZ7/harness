@@ -1,8 +1,9 @@
 # models.py
 
 from enum import Enum
-from typing import Any, Callable, Mapping 
+from typing import Any, Callable, Coroutine, Mapping 
 from dataclasses import dataclass, field
+from inspect import isawaitable
 
 @dataclass
 class Tool:
@@ -10,8 +11,11 @@ class Tool:
     description: str
     function: Callable
 
-    def __call__(self, **kwargs: Any) -> Any:
-        return self.function(**kwargs)
+    async def __call__(self, **kwargs: Any) -> Any:
+        res = self.function(**kwargs)
+        if isawaitable(res):
+            return await res
+        return res
 
 @dataclass 
 class ToolCall:

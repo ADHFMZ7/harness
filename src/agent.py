@@ -4,8 +4,9 @@ from llm import LLM
 from models import LLMRequest, Message, Role, ToolCall, ToolResult
 from tools import ToolRegistry
 
-# Agent needs some sort of memory later
+import asyncio
 
+# Agent needs some sort of memory later
 
 class Agent:
 
@@ -16,7 +17,7 @@ class Agent:
         self.history: list[Message | ToolResult] = []
 
 
-    def run(self, prompt: str):
+    async def run(self, prompt: str):
 
         self.history.append(Message(Role.USER, prompt))
 
@@ -29,7 +30,7 @@ class Agent:
 
             if response.message.tool_calls:
 
-                self.history += self.execute_toolcalls(response.message.tool_calls)
+                self.history += await self.execute_toolcalls(response.message.tool_calls)
 
             else:
                 # No more tool calls, request is likely complete
@@ -37,18 +38,13 @@ class Agent:
                 break
 
 
-    def execute_toolcalls(self, toolcalls: list[ToolCall]) -> list[ToolResult]:
+    async def execute_toolcalls(self, toolcalls: list[ToolCall]) -> list[ToolResult]:
 
-        results = []
-        for call in toolcalls:
-         
-            tool = self.tools[call.name]
-            output = tool(**call.arguments)
+        results = await asyncio.gather(
+            *(self.tools[call.name](**call.arguments) for call in toolcalls)
+        )
 
-            print(f"Executing toolcall: {tool.name}({call.arguments}) = {output}")
-
-            results.append(
-                ToolResult(output, call.name)
-            )
-
-        return results
+        return [
+            ToolResult(result, call.name) 
+            for result, call in zip(results, toolcalls)
+        ]
