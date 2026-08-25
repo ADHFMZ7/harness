@@ -4,6 +4,7 @@
 from typing import Any, Callable
 from models import Tool
 
+import asyncio
 import aiofiles
 from aiofiles import os
 
@@ -81,18 +82,73 @@ async def read_file(path: str, start_line: int | None = None, end_line: int | No
 
     return ''.join(lines)
 
-# @registry.register
-# async def search_file(query: str, path: str, max_results: int = 50) -> Any:
+
+@registry.register
+async def search_file(
+    query: str,
+    path: str = ".",
+    max_results: int = 50,
+) -> str:
+    """Search files recursively for a text or regex pattern."""
+
+    print(f"Tools: searching all files that have {query} in path {path}")
+
+    process = await asyncio.create_subprocess_exec(
+        "rg",
+        "--line-number",
+        "--with-filename",
+        "--color=never",
+        "--max-count", str(max_results),
+        query,
+        path,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    stdout, stderr = await process.communicate()
+
+    if process.returncode == 1:
+        return "No matches found."
+
+    if process.returncode != 0:
+        error = stderr.decode().strip()
+        raise RuntimeError(f"Search failed: {error}")
+
+    return stdout.decode()
 
 
+@registry.register
+async def write_file(path: str, content: str) -> str:
+    """Create or overwrite a file with the provided contents."""
+
+    async with aiofiles.open(path, mode="w") as file:
+        await file.write(content)
+
+    return f"Successfully wrote {path}"
 
 
+@registry.register
+async def edit_file(path: str, old: str, new: str) -> str:
+    """Replace exactly one occurrence of old text with new text."""
 
+    async with aiofiles.open(path, mode="r") as file:
+        content = await file.read()
 
+    count = content.count(old)
 
+    if count == 0:
+        raise ValueError("The specified text was not found in the file.")
 
+    if count > 1:
+        raise ValueError(
+            f"The specified text occurs {count} times; "
+            "provide more context to uniquely identify the edit."
+        )
 
+    content = content.replace(old, new, 1)
 
+    async with aiofiles.open(path, mode="w") as file:
+        await file.write(content)
 
-
+    return f"Successfully edited {path}"
 
