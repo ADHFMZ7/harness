@@ -59,25 +59,22 @@ async def list_files(dir_path: str = '.') -> list[str]:
 
 
 @registry.register
-async def read_file(path: str, start_line: int | None = None, end_line: int | None = None) -> Any:
+async def read_file(path: str, start_line: int | None = None, end_line: int | None = None) -> str:
     '''Read contents of a file. Returns chunk bounded by provided range. If no range is provided, entire file is read'''
 
     lines = []
 
+    line_num = 0
     async with aiofiles.open(path, mode='r') as file:
-        
-        line_num = 1
-        while (line := await file.readline()):
+        async for line in file:
+            line_num += 1
+            if start_line and line_num < start_line:
+                continue
             if end_line and line_num > end_line:
                 break
-            if start_line and line_num < start_line:
-                continue 
             lines.append(line)
 
-            line_num += 1
-
     return ''.join(lines)
-
 
 @registry.register
 async def search_file(
