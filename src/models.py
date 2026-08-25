@@ -47,3 +47,19 @@ class LLMRequest:
 class LLMResponse:
     message:    Message
 
+class LLMEvent:
+    id: int
+
+@dataclass
+class ThinkingEvent(LLMEvent):
+    thinking: str
+
+@dataclass
+class ContentEvent(LLMEvent):
+    content: str
+
+@dataclass
+class ToolCallEvent(LLMEvent):
+    tool_calls: list[ToolCall]
+
+
