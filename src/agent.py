@@ -1,7 +1,7 @@
 # agent.py
 
 from llm import LLM
-from models import LLMRequest, Message, Role, ToolCall, ToolResult
+from models import ContentEvent, LLMRequest, Message, Role, ThinkingEvent, ToolCall, ToolResult, ToolCallEvent
 from tools import ToolRegistry
 
 import asyncio
@@ -24,17 +24,30 @@ class Agent:
         while True:
 
             request = LLMRequest(self.history, self.tools.get_tools())
-            response = self.llm.generate(request)
+            stream = self.llm.generate_stream(request)
 
-            self.history.append(response.message)
+            thinking = []
+            content =  []
+            tools =    []
 
-            if response.message.tool_calls:
+            for event in stream:
 
-                self.history += await self.execute_toolcalls(response.message.tool_calls)
+                match event:
 
+                    case ThinkingEvent():
+                        thinking.append(event.thinking)
+                        yield event
+                    case ContentEvent():
+                        content.append(event.content)
+                        yield event
+                    case ToolCallEvent():
+                        tools.extend(event.tool_calls)
+
+            self.history.append(Message(Role.AGENT, ''.join(content), tools))
+            
+            if tools:
+                self.history += await self.execute_toolcalls(tools)
             else:
-                # No more tool calls, request is likely complete
-                yield response.message.content
                 break
 
 
@@ -48,3 +61,4 @@ class Agent:
             ToolResult(result, call.name) 
             for result, call in zip(results, toolcalls)
         ]
+
