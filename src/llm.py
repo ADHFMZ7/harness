@@ -71,6 +71,7 @@ class OllamaLLM(LLM):
             result = {
                 "role": message.role,
                 "content": message.content,
+                "thinking": message.thinking
             }
 
             if message.tool_calls:
