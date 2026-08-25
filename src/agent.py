@@ -43,7 +43,7 @@ class Agent:
                     case ToolCallEvent():
                         tools.extend(event.tool_calls)
 
-            self.history.append(Message(Role.AGENT, ''.join(content), tools))
+            self.history.append(Message(Role.AGENT, ''.join(content), ''.join(thinking), tools))
             
             if tools:
                 self.history += await self.execute_toolcalls(tools)

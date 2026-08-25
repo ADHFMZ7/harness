@@ -34,8 +34,9 @@ class Role(Enum):
 
 @dataclass
 class Message:
-    role: Role
-    content: str
+    role:       Role
+    content:    str
+    thinking:   str = field(default='')
     tool_calls: list[ToolCall] = field(default_factory=list)
 
 @dataclass

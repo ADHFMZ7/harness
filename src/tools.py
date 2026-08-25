@@ -49,22 +49,18 @@ registry = ToolRegistry()
 @registry.register
 def add(a: int, b: int) -> int:
     '''takes adds two integers a and b and returns their sum'''
-    print(f"Tools: Adding numbers {a} {b}")
     return a + b
 
 
 @registry.register
 async def list_files(dir_path: str = '.') -> list[str]:
     '''lists files in directory specified by path'''
-    print(f"Tools: Listing files at path {dir_path}")
     return await os.listdir(dir_path)
 
 
 @registry.register
 async def read_file(path: str, start_line: int | None = None, end_line: int | None = None) -> Any:
     '''Read contents of a file. Returns chunk bounded by provided range. If no range is provided, entire file is read'''
-
-    print(f"Tools: Reading file at path {path}")
 
     lines = []
 
@@ -90,8 +86,6 @@ async def search_file(
     max_results: int = 50,
 ) -> str:
     """Search files recursively for a text or regex pattern."""
-
-    print(f"Tools: searching all files that have {query} in path {path}")
 
     process = await asyncio.create_subprocess_exec(
         "rg",

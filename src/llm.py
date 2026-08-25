@@ -31,7 +31,7 @@ class OllamaLLM(LLM):
         ]
 
         return LLMResponse(
-            Message(Role.AGENT, response.message.content or '', tool_calls)
+            Message(Role.AGENT, response.message.content or '', response.message.thinking or '', tool_calls)
         )
 
 
