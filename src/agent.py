@@ -1,7 +1,7 @@
 # agent.py
 
 from llm import LLM
-from models import ContentEvent, LLMRequest, Message, Role, ThinkingEvent, ToolCall, ToolResult, ToolCallEvent
+from models import ContentEvent, LLMRequest, Message, Role, ThinkingEvent, ToolCall, ToolResult, ToolCallEvent, ToolResultEvent
 from tools import ToolRegistry
 
 import asyncio
@@ -36,17 +36,21 @@ class Agent:
 
                     case ThinkingEvent():
                         thinking.append(event.thinking)
-                        yield event
                     case ContentEvent():
                         content.append(event.content)
-                        yield event
                     case ToolCallEvent():
                         tools.extend(event.tool_calls)
+                    case _:
+                        exit() 
+                        # raise TODO: Handle this later
+                yield event
 
             self.history.append(Message(Role.AGENT, ''.join(content), ''.join(thinking), tools))
             
             if tools:
-                self.history += await self.execute_toolcalls(tools)
+                results = await self.execute_toolcalls(tools)
+                self.history += results
+                yield ToolResultEvent(results)
             else:
                 break
 

@@ -48,19 +48,22 @@ class LLMRequest:
 class LLMResponse:
     message:    Message
 
-class LLMEvent:
+class AgentEvent:
     id: int
 
 @dataclass
-class ThinkingEvent(LLMEvent):
+class ThinkingEvent(AgentEvent):
     thinking: str
 
 @dataclass
-class ContentEvent(LLMEvent):
+class ContentEvent(AgentEvent):
     content: str
 
 @dataclass
-class ToolCallEvent(LLMEvent):
+class ToolCallEvent(AgentEvent):
     tool_calls: list[ToolCall]
 
+@dataclass
+class ToolResultEvent(AgentEvent):
+    results: list[ToolResult]
 

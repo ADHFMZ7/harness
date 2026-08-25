@@ -4,11 +4,11 @@
 from typing import Coroutine, Generator, Protocol
 import ollama
 
-from models import ToolCall, LLMRequest, LLMResponse, Message, Role, ToolResult, ThinkingEvent, ContentEvent, ToolCallEvent, LLMEvent
+from models import ToolCall, LLMRequest, LLMResponse, Message, Role, ToolResult, ThinkingEvent, ContentEvent, ToolCallEvent, AgentEvent
 
 class LLM(Protocol):
     def generate(self, request: LLMRequest) -> LLMResponse: ...
-    def generate_stream(self, request: LLMRequest) -> Generator[LLMEvent, None, None]: ...
+    def generate_stream(self, request: LLMRequest) -> Generator[AgentEvent, None, None]: ...
 
 
 class OllamaLLM(LLM):
@@ -35,7 +35,7 @@ class OllamaLLM(LLM):
         )
 
 
-    def generate_stream(self, request: LLMRequest) -> Generator[LLMEvent, None, None]:
+    def generate_stream(self, request: LLMRequest) -> Generator[AgentEvent, None, None]:
 
         response = ollama.chat(
             model=self.model,
