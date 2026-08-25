@@ -14,7 +14,14 @@ from rich.text import Text
 
 from agent import Agent
 from llm import OllamaLLM
-from models import ContentEvent, Message, ThinkingEvent, ToolCall, ToolResult
+from models import (
+    ContentEvent,
+    ThinkingEvent,
+    ToolCall,
+    ToolCallEvent,
+    ToolResult,
+    ToolResultEvent,
+)
 from tools import registry
 
 DEFAULT_MODEL = "qwen3.5:9b"
@@ -46,11 +53,11 @@ class View:
         self.buffer = ""
         self.started = 0.0
 
-    def wait(self) -> None:
-        """Show a spinner until the first token arrives."""
+    def wait(self, label: str = "thinking") -> None:
+        """Show a spinner while the agent is busy between blocks."""
         self._open("wait", transient=True)
         assert self.live
-        self.live.update(Padding(Spinner("dots", Text("thinking", style="dim")), (0, 2)))
+        self.live.update(Padding(Spinner("dots", Text(label, style="dim")), (0, 2)))
 
     def append(self, kind: str, text: str) -> None:
         if self.kind != kind:
@@ -59,8 +66,8 @@ class View:
         assert self.live
         self.live.update(self._streaming())
 
-    def note(self, renderable) -> None:
-        """Print something between blocks (a tool call, a result)."""
+    def _note(self, renderable) -> None:
+        """Close the current block, then print something permanently."""
         self.end()
         self.console.print(renderable)
 
@@ -73,16 +80,6 @@ class View:
         self.live = None
         self.kind = None
         self.buffer = ""
-
-    def drain(self, history: list, seen: int) -> int:
-        """Surface tool activity the agent recorded in its history."""
-        for item in history[seen:]:
-            if isinstance(item, Message):
-                for call in item.tool_calls:
-                    self.note(self._tool_call(call))
-            elif isinstance(item, ToolResult):
-                self.note(self._tool_result(item))
-        return len(history)
 
     def _open(self, kind: str, transient: bool = False) -> None:
         self.end()
@@ -110,32 +107,38 @@ class View:
         body = self.buffer.strip()
         return Padding(Markdown(body) if body else Text(""), (0, 2))
 
-    def _tool_call(self, call: ToolCall) -> Text:
+    def tool_call(self, call: ToolCall) -> None:
         args = ", ".join(f"{k}={truncate(v, 40)}" for k, v in call.arguments.items())
         line = Text("  ⚒ ", style="magenta")
         line.append(call.name, style="bold magenta")
         line.append(f"({args})", style="dim")
-        return line
+        self._note(line)
 
-    def _tool_result(self, result: ToolResult) -> Text:
-        return Text(f"    ↳ {truncate(result.result, self.console.width - 8)}", style="dim")
+    def tool_result(self, result: ToolResult) -> None:
+        body = truncate(result.result, self.console.width - 8)
+        self._note(Text(f"    ↳ {body}", style="dim"))
 
 
 async def turn(agent: Agent, view: View, console: Console, prompt: str) -> None:
-    seen = len(agent.history)
     problem = None
 
     console.print()
     view.wait()
     try:
         async for event in agent.run(prompt):
-            seen = view.drain(agent.history, seen)
             match event:
                 case ThinkingEvent():
                     view.append("thinking", event.thinking)
                 case ContentEvent():
                     view.append("content", event.content)
-        view.drain(agent.history, seen)
+                case ToolCallEvent():
+                    for call in event.tool_calls:
+                        view.tool_call(call)
+                    view.wait("running")
+                case ToolResultEvent():
+                    for result in event.results:
+                        view.tool_result(result)
+                    view.wait()
     except KeyboardInterrupt:
         problem = "interrupted"
     except Exception as exc:
