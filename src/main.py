@@ -116,7 +116,8 @@ class View:
 
     def tool_result(self, result: ToolResult) -> None:
         body = truncate(result.result, self.console.width - 8)
-        self._note(Text(f"    ↳ {body}", style="dim"))
+        style = "red" if result.is_error else "dim"
+        self._note(Text(f"    ↳ {body}", style=style))
 
 
 async def turn(agent: Agent, view: View, console: Console, prompt: str) -> None:

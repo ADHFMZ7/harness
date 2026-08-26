@@ -10,7 +10,6 @@ from aiofiles import os
 
 '''
 Tools I eventually want to support
-- File i/o
 - Web search
 '''
 
@@ -84,17 +83,25 @@ async def search_file(
 ) -> str:
     """Search files recursively for a text or regex pattern."""
 
-    process = await asyncio.create_subprocess_exec(
-        "rg",
-        "--line-number",
-        "--with-filename",
-        "--color=never",
-        "--max-count", str(max_results),
-        query,
-        path,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+    try:
+
+        process = await asyncio.create_subprocess_exec(
+            "rg",
+            "--line-number",
+            "--with-filename",
+            "--color=never",
+            "--max-count", str(max_results),
+            query,
+            path,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        raise RuntimeError(
+            "ripgrep (rg) is required but was not found. "
+            "Please install ripgrep."
+        )
+        
 
     stdout, stderr = await process.communicate()
 
