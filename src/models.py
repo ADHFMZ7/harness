@@ -26,6 +26,7 @@ class ToolCall:
 class ToolResult:
     result:    Any
     tool_name: str
+    is_error:  bool = field(default=False)
 
 class Role(Enum):
     USER  = 'user'

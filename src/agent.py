@@ -57,12 +57,16 @@ class Agent:
 
     async def execute_toolcalls(self, toolcalls: list[ToolCall]) -> list[ToolResult]:
 
-        results = await asyncio.gather(
-            *(self.tools[call.name](**call.arguments) for call in toolcalls)
-        )
+        async def call(tc: ToolCall) -> ToolResult:
+            try:
+                tool = self.tools[tc.name]
+            except KeyError:
+                names = ", ".join(t.name for t in self.tools.get_tools())
+                return ToolResult(f"No tool named {tc.name!r}. Available tools: {names}",
+                                  tc.name, is_error=True)
+            try:
+                return ToolResult(await tool(**tc.arguments), tc.name)
+            except Exception as exc:
+                return ToolResult(f"{type(exc).__name__}: {exc}", tc.name, is_error=True)
 
-        return [
-            ToolResult(result, call.name) 
-            for result, call in zip(results, toolcalls)
-        ]
-
+        return await asyncio.gather(*(call(tc) for tc in toolcalls))
