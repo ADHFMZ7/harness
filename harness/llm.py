@@ -4,7 +4,7 @@
 from typing import Coroutine, Generator, Protocol
 import ollama
 
-from models import ToolCall, LLMRequest, LLMResponse, Message, Role, ToolResult, ThinkingEvent, ContentEvent, ToolCallEvent, AgentEvent
+from harness.models import ToolCall, LLMRequest, LLMResponse, Message, Role, ToolResult, ThinkingEvent, ContentEvent, ToolCallEvent, AgentEvent
 
 class LLM(Protocol):
     def generate(self, request: LLMRequest) -> LLMResponse: ...
@@ -90,18 +90,18 @@ class OllamaLLM(LLM):
             return {'role': 'tool', 'content':str(message.result), 'tool_name':message.tool_name}
 
 
-from tools import registry
-if __name__ == '__main__':
-
-    llm = OllamaLLM()
-
-        # request = LLMRequest(self.history, self.tools.get_tools())
-
-    message = 'What is the result of 5432 + 65453?'
-    messages: list[Message | ToolResult] = [Message(Role.USER, message)]
-    req = LLMRequest(messages, registry.get_tools())
-
-    for event in llm.generate_stream(req):
-        print(event)
-
-
+# from tools import registry
+# if __name__ == '__main__':
+#
+#     llm = OllamaLLM()
+#
+#         # request = LLMRequest(self.history, self.tools.get_tools())
+#
+#     message = 'What is the result of 5432 + 65453?'
+#     messages: list[Message | ToolResult] = [Message(Role.USER, message)]
+#     req = LLMRequest(messages, registry.get_tools())
+#
+#     for event in llm.generate_stream(req):
+#         print(event)
+#
+#

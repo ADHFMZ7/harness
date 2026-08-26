@@ -1,8 +1,8 @@
 # agent.py
 
-from llm import LLM
-from models import ContentEvent, LLMRequest, Message, Role, ThinkingEvent, ToolCall, ToolResult, ToolCallEvent, ToolResultEvent
-from tools import ToolRegistry
+from harness.llm import LLM
+from harness.models import ContentEvent, LLMRequest, Message, Role, ThinkingEvent, ToolCall, ToolResult, ToolCallEvent, ToolResultEvent
+from harness.tools import ToolRegistry
 
 import asyncio
 

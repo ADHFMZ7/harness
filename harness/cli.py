@@ -1,4 +1,4 @@
-# main.py
+# cli.py
 # a small terminal front-end for the agent
 
 import argparse
@@ -12,9 +12,9 @@ from rich.padding import Padding
 from rich.spinner import Spinner
 from rich.text import Text
 
-from agent import Agent
-from llm import OllamaLLM
-from models import (
+from harness.agent import Agent
+from harness.llm import OllamaLLM
+from harness.models import (
     ContentEvent,
     ThinkingEvent,
     ToolCall,
@@ -22,7 +22,7 @@ from models import (
     ToolResult,
     ToolResultEvent,
 )
-from tools import registry
+from harness.tools import registry
 
 DEFAULT_MODEL = "qwen3.5:9b"
 
@@ -184,8 +184,13 @@ def command(console: Console, agent: Agent, line: str) -> bool:
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(prog="harness", description="chat with a tool-using agent")
-    parser.add_argument("-m", "--model", default=DEFAULT_MODEL, help=f"ollama model (default: {DEFAULT_MODEL})")
+    parser = argparse.ArgumentParser(
+        prog="harness", description="chat with a tool-using agent"
+    )
+    parser.add_argument(
+        "-m", "--model", default=DEFAULT_MODEL, 
+        help=f"ollama model (default: {DEFAULT_MODEL})"
+    )
     args = parser.parse_args()
 
     console = Console()
@@ -216,7 +221,8 @@ async def main() -> None:
         await turn(agent, view, console, prompt)
 
 
-if __name__ == "__main__":
+def run() -> None:
+    """Console-script entry point."""
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

@@ -1,12 +1,13 @@
 # tools.py
 # registry of tools agent can access
 
-from typing import Any, Callable
-from models import Tool
 
 import asyncio
 import aiofiles
 from aiofiles import os
+from typing import Any, Callable
+
+from harness.models import Tool
 
 '''
 Tools I eventually want to support
