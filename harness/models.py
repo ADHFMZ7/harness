@@ -1,9 +1,11 @@
 # models.py
 
-from enum import Enum
-from typing import Any, Callable, Coroutine, Mapping 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from enum import Enum
 from inspect import isawaitable
+from typing import Any
+
 
 @dataclass
 class Tool:

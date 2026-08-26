@@ -3,9 +3,11 @@
 
 
 import asyncio
+from collections.abc import Callable
+from typing import Any
+
 import aiofiles
 from aiofiles import os
-from typing import Any, Callable
 
 from harness.models import Tool
 
@@ -65,7 +67,7 @@ async def read_file(path: str, start_line: int | None = None, end_line: int | No
     lines = []
 
     line_num = 0
-    async with aiofiles.open(path, mode='r') as file:
+    async with aiofiles.open(path) as file:
         async for line in file:
             line_num += 1
             if start_line and line_num < start_line:
@@ -101,7 +103,7 @@ async def search_file(
         raise RuntimeError(
             "ripgrep (rg) is required but was not found. "
             "Please install ripgrep."
-        )
+        ) from None
         
 
     stdout, stderr = await process.communicate()
@@ -130,7 +132,7 @@ async def write_file(path: str, content: str) -> str:
 async def edit_file(path: str, old: str, new: str) -> str:
     """Replace exactly one occurrence of old text with new text."""
 
-    async with aiofiles.open(path, mode="r") as file:
+    async with aiofiles.open(path) as file:
         content = await file.read()
 
     count = content.count(old)

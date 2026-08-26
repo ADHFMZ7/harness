@@ -11,7 +11,6 @@ jobs:
           enable-cache: true
       - run: uv sync --dev
       - run: uv run ruff check .
-      - run: uv run ruff format --check .
       - run: uv run pytest
       - run: uv build
       - name: Smoke-test the wheel

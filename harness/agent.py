@@ -1,10 +1,20 @@
 # agent.py
 
-from harness.llm import LLM
-from harness.models import ContentEvent, LLMRequest, Message, Role, ThinkingEvent, ToolCall, ToolResult, ToolCallEvent, ToolResultEvent
-from harness.tools import ToolRegistry
-
 import asyncio
+
+from harness.llm import LLM
+from harness.models import (
+    ContentEvent,
+    LLMRequest,
+    Message,
+    Role,
+    ThinkingEvent,
+    ToolCall,
+    ToolCallEvent,
+    ToolResult,
+    ToolResultEvent,
+)
+from harness.tools import ToolRegistry
 
 # Agent needs some sort of memory later
 

@@ -1,10 +1,24 @@
 # llm.py
 # abstraction for llm calls
 
-from typing import Coroutine, Generator, Protocol
+from collections.abc import Generator
+from typing import Protocol
+
 import ollama
 
-from harness.models import ToolCall, LLMRequest, LLMResponse, Message, Role, ToolResult, ThinkingEvent, ContentEvent, ToolCallEvent, AgentEvent
+from harness.models import (
+    AgentEvent,
+    ContentEvent,
+    LLMRequest,
+    LLMResponse,
+    Message,
+    Role,
+    ThinkingEvent,
+    ToolCall,
+    ToolCallEvent,
+    ToolResult,
+)
+
 
 class LLM(Protocol):
     def generate(self, request: LLMRequest) -> LLMResponse: ...
