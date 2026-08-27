@@ -101,8 +101,5 @@ class OllamaLLM(LLM):
 
             return result
         elif isinstance(message, ToolResult):
-            payload = {'role': 'tool', 'content':str(message.result), 'tool_name':message.tool_name}
-            if message.is_error:
-                return {'role': 'tool', 'content':str(message.result), 'tool_name':message.tool_name}
-            return payload
+            return {'role': 'tool', 'content':str(message.result), 'tool_name':message.tool_name}
 
