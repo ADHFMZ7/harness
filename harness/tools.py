@@ -2,14 +2,11 @@
 # registry of tools agent can access
 
 
-import asyncio
 from collections.abc import Callable
 from typing import Any
 
-import aiofiles
-from aiofiles import os
-
 from harness.models import Tool
+from harness.workspace import Workspace
 
 '''
 Tools I eventually want to support
@@ -46,110 +43,47 @@ class ToolRegistry:
             raise KeyError(f"Tool {key} does not exist")
         return tool
 
-registry = ToolRegistry()
 
-@registry.register
-def add(a: int, b: int) -> int:
-    '''takes adds two integers a and b and returns their sum'''
-    return a + b
+def build_registry(workspace: Workspace) -> ToolRegistry:
+    '''Build the tool set the agent sees, bound to one workspace.
 
+    The tools are deliberately thin. Confinement, atomic writes and the trash
+    all live in the workspace, so there is one place to look for the rules and
+    no way for a tool to acquire its own.
+    '''
 
-@registry.register
-async def list_files(dir_path: str = '.') -> list[str]:
-    '''lists files in directory specified by path'''
-    return await os.listdir(dir_path)
+    registry = ToolRegistry()
 
+    @registry.register
+    def add(a: int, b: int) -> int:
+        '''takes adds two integers a and b and returns their sum'''
+        return a + b
 
-@registry.register
-async def read_file(path: str, start_line: int | None = None, end_line: int | None = None) -> str:
-    '''Read contents of a file. Returns chunk bounded by provided range. If no range is provided, entire file is read'''
+    @registry.register
+    async def list_files(dir_path: str = '.') -> list[str]:
+        '''lists files in directory specified by path'''
+        return await workspace.list(dir_path)
 
-    lines = []
+    @registry.register
+    async def read_file(path: str, start_line: int | None = None, end_line: int | None = None) -> str:
+        '''Read contents of a file. Returns chunk bounded by provided range. If no range is provided, entire file is read'''
+        return await workspace.read(path, start_line, end_line)
 
-    line_num = 0
-    async with aiofiles.open(path) as file:
-        async for line in file:
-            line_num += 1
-            if start_line and line_num < start_line:
-                continue
-            if end_line and line_num > end_line:
-                break
-            lines.append(line)
+    @registry.register
+    async def search_file(query: str, path: str = ".", max_results: int = 50) -> str:
+        """Search files recursively for a text or regex pattern."""
+        return await workspace.search(query, path, max_results)
 
-    return ''.join(lines)
+    @registry.register
+    async def write_file(path: str, content: str) -> str:
+        """Create or overwrite a file with the provided contents."""
+        await workspace.write(path, content)
+        return f"Successfully wrote {path}"
 
-@registry.register
-async def search_file(
-    query: str,
-    path: str = ".",
-    max_results: int = 50,
-) -> str:
-    """Search files recursively for a text or regex pattern."""
+    @registry.register
+    async def edit_file(path: str, old: str, new: str) -> str:
+        """Replace exactly one occurrence of old text with new text."""
+        await workspace.edit(path, old, new)
+        return f"Successfully edited {path}"
 
-    try:
-
-        process = await asyncio.create_subprocess_exec(
-            "rg",
-            "--line-number",
-            "--with-filename",
-            "--color=never",
-            "--max-count", str(max_results),
-            query,
-            path,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-    except FileNotFoundError:
-        raise RuntimeError(
-            "ripgrep (rg) is required but was not found. "
-            "Please install ripgrep."
-        ) from None
-        
-
-    stdout, stderr = await process.communicate()
-
-    if process.returncode == 1:
-        return "No matches found."
-
-    if process.returncode != 0:
-        error = stderr.decode().strip()
-        raise RuntimeError(f"Search failed: {error}")
-
-    return stdout.decode()
-
-
-@registry.register
-async def write_file(path: str, content: str) -> str:
-    """Create or overwrite a file with the provided contents."""
-
-    async with aiofiles.open(path, mode="w") as file:
-        await file.write(content)
-
-    return f"Successfully wrote {path}"
-
-
-@registry.register
-async def edit_file(path: str, old: str, new: str) -> str:
-    """Replace exactly one occurrence of old text with new text."""
-
-    async with aiofiles.open(path) as file:
-        content = await file.read()
-
-    count = content.count(old)
-
-    if count == 0:
-        raise ValueError("The specified text was not found in the file.")
-
-    if count > 1:
-        raise ValueError(
-            f"The specified text occurs {count} times; "
-            "provide more context to uniquely identify the edit."
-        )
-
-    content = content.replace(old, new, 1)
-
-    async with aiofiles.open(path, mode="w") as file:
-        await file.write(content)
-
-    return f"Successfully edited {path}"
-
+    return registry
