@@ -51,8 +51,8 @@ class Agent:
                     case ToolCallEvent():
                         tools.extend(event.tool_calls)
                     case _:
-                        exit() 
-                        # raise TODO: Handle this later
+                        # TODO: Handle this later
+                        continue
                 yield event
 
             self.history.append(Message(Role.AGENT, ''.join(content), ''.join(thinking), tools))

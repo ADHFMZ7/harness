@@ -2,7 +2,7 @@
 # abstraction for llm calls
 
 from collections.abc import Generator
-from typing import Protocol
+from typing import Any, Protocol
 
 import ollama
 
@@ -82,8 +82,8 @@ class OllamaLLM(LLM):
     def to_ollama(self, message: Message | ToolResult):
 
         if isinstance(message, Message):
-            result = {
-                "role": message.role,
+            result: dict[str, Any] = {
+                "role": message.role.value,
                 "content": message.content,
                 "thinking": message.thinking
             }
@@ -101,21 +101,8 @@ class OllamaLLM(LLM):
 
             return result
         elif isinstance(message, ToolResult):
-            return {'role': 'tool', 'content':str(message.result), 'tool_name':message.tool_name}
+            payload = {'role': 'tool', 'content':str(message.result), 'tool_name':message.tool_name}
+            if message.is_error:
+                return {'role': 'tool', 'content':str(message.result), 'tool_name':message.tool_name}
+            return payload
 
-
-# from tools import registry
-# if __name__ == '__main__':
-#
-#     llm = OllamaLLM()
-#
-#         # request = LLMRequest(self.history, self.tools.get_tools())
-#
-#     message = 'What is the result of 5432 + 65453?'
-#     messages: list[Message | ToolResult] = [Message(Role.USER, message)]
-#     req = LLMRequest(messages, registry.get_tools())
-#
-#     for event in llm.generate_stream(req):
-#         print(event)
-#
-#
