@@ -22,7 +22,8 @@ from harness.models import (
     ToolResult,
     ToolResultEvent,
 )
-from harness.tools import registry
+from harness.tools import build_registry
+from harness.workspace import HostWorkspace, WorkspaceError
 
 DEFAULT_MODEL = "qwen3.5:9b"
 
@@ -166,7 +167,7 @@ def command(console: Console, agent: Agent, line: str) -> bool:
 
         case "/tools":
             console.print()
-            for tool in registry.get_tools():
+            for tool in agent.tools.get_tools():
                 summary = truncate(tool.description, console.width - 24)
                 console.print(f"  [bold]{tool.name:<14}[/][dim]{summary}[/]")
             console.print()
@@ -191,14 +192,26 @@ async def main() -> None:
         "-m", "--model", default=DEFAULT_MODEL, 
         help=f"ollama model (default: {DEFAULT_MODEL})"
     )
+    parser.add_argument(
+        "-w", "--workspace", default=".",
+        help="directory the agent may read and write (default: the current one)"
+    )
     args = parser.parse_args()
 
     console = Console()
-    agent = Agent(OllamaLLM(args.model), registry)
+
+    try:
+        workspace = HostWorkspace(args.workspace)
+    except WorkspaceError as exc:
+        console.print(f"\n  [red]{exc}[/]\n")
+        return
+
+    agent = Agent(OllamaLLM(args.model), build_registry(workspace))
     view = View(console)
 
     console.print()
     console.print(f"  [bold cyan]harness[/] [dim]· {args.model}[/]")
+    console.print(f"  [dim]workspace · {workspace.root}[/]")
     console.print("  [dim]/help for commands · ctrl-d to exit[/]")
     console.print()
 

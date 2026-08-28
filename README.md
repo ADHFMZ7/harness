@@ -39,14 +39,18 @@ harness
 ## Usage
 
 ```sh
-harness              # defaults to qwen3.5:9b
-harness -m llama3.2  # any model ollama has pulled
+harness                    # defaults to qwen3.5:9b, current directory
+harness -m llama3.2        # any model ollama has pulled
+harness -w ~/code/project  # point the agent somewhere else
 ```
 
-> **The file tools are not sandboxed.** `write_file` and `edit_file` will modify
-> any path the process can reach, without confirmation, and `read_file` will pull
-> any readable file into model context. Run it against directories you don't mind
-> a model touching.
+The agent can only reach files under the workspace directory. Paths are resolved
+before use and refused if they land outside it, `.git` is off limits, and writes
+go through a rename so a crash can't truncate a file. Version control is yours to
+manage — the harness does not checkpoint or undo anything.
+
+> **There is no confirmation step yet.** Inside the workspace the agent writes
+> without asking, so point it at a directory you don't mind a model editing.
 
 ## How it works
 
@@ -54,6 +58,7 @@ harness -m llama3.2  # any model ollama has pulled
 |--------|-|
 | `models.py` | dataclasses for messages, tools, and the event stream |
 | `llm.py`    | the provider boundary — an `LLM` protocol plus the ollama implementation |
+| `workspace.py` | confined, atomic filesystem access — path resolution lives here |
 | `tools.py`  | the tool registry and the built-in tools |
 | `agent.py`  | the tool-calling loop |
 | `cli.py`    | the terminal front-end |
@@ -66,13 +71,14 @@ single batch run concurrently, and a tool that raises comes back as a
 the error and can correct itself.
 
 Adding a tool is a decorator and a docstring; the docstring is the description
-the model sees:
+the model sees. Tools are registered inside `build_registry`, which binds them to
+a single workspace, so a tool never reaches the filesystem directly:
 
 ```python
 @registry.register
 async def list_files(dir_path: str = '.') -> list[str]:
     '''lists files in directory specified by path'''
-    return await os.listdir(dir_path)
+    return await workspace.list(dir_path)
 ```
 
 ## Development

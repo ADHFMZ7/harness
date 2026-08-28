@@ -18,12 +18,21 @@ from harness.tools import ToolRegistry
 
 # Agent needs some sort of memory later
 
+DEFAULT_MAX_ITERATIONS = 25
+
+
+class IterationLimit(RuntimeError):
+    """A turn kept calling tools past the limit and was stopped."""
+
+
 class Agent:
 
-    def __init__(self, llm: LLM, tools: ToolRegistry):
+    def __init__(self, llm: LLM, tools: ToolRegistry,
+                 max_iterations: int = DEFAULT_MAX_ITERATIONS):
         self.llm   = llm
         self.tools = tools
 
+        self.max_iterations = max_iterations
         self.history: list[Message | ToolResult] = []
 
 
@@ -31,7 +40,11 @@ class Agent:
 
         self.history.append(Message(Role.USER, prompt))
 
+        iterations = 0
+
         while True:
+
+            iterations += 1
 
             request = LLMRequest(self.history, self.tools.get_tools())
             stream = self.llm.generate_stream(request)
@@ -61,6 +74,12 @@ class Agent:
                 results = await self.execute_toolcalls(tools)
                 self.history += results
                 yield ToolResultEvent(results)
+
+                if iterations >= self.max_iterations:
+                    raise IterationLimit(
+                        f"stopped after {iterations} rounds of tool calls — "
+                        "send another message to keep going"
+                    )
             else:
                 break
 
