@@ -33,8 +33,12 @@ class LLM(Protocol):
 
 class OllamaLLM(LLM):
 
-    def __init__(self, model: str = 'qwen3.5:9b'):
+    def __init__(self, model: str = 'qwen3.5:9b', num_ctx: int | None = None, think: bool = True):
         self.model = model
+        self.think = think
+        # num_ctx is fixed per instance on purpose: ollama reloads the model
+        # whenever a request asks for a different context size.
+        self.options = {'num_ctx': num_ctx} if num_ctx else None
         self.client = ollama.AsyncClient()
 
     async def generate(self, request: LLMRequest) -> LLMResponse:
@@ -43,7 +47,8 @@ class OllamaLLM(LLM):
             model=self.model,
             tools=[tool.function for tool in request.tools],
             messages=[self.to_ollama(message) for message in request.messages],
-            think=True
+            think=self.think,
+            options=self.options,
         )
 
         tool_calls = [
@@ -62,7 +67,8 @@ class OllamaLLM(LLM):
             model=self.model,
             tools=[tool.function for tool in request.tools],
             messages=[self.to_ollama(message) for message in request.messages],
-            think=True,
+            think=self.think,
+            options=self.options,
             stream=True
         )
 
@@ -113,10 +119,12 @@ class OllamaLLM(LLM):
 
 class GroqLLM(LLM):
 
-    def __init__(self, model: str = 'openai/gpt-oss-120b', api_key: str | None = None):
+    def __init__(self, model: str = 'openai/gpt-oss-120b', api_key: str | None = None,
+                 max_retries: int = 2):
         self.model = model
         # Without an api_key the client reads GROQ_API_KEY from the environment.
-        self.client = groq.AsyncGroq(api_key=api_key)
+        # Retries back off, and wait out a rate limit when Groq says how long.
+        self.client = groq.AsyncGroq(api_key=api_key, max_retries=max_retries)
 
     async def generate(self, request: LLMRequest) -> LLMResponse:
 
@@ -254,7 +262,7 @@ def json_type(hint: Any) -> dict[str, Any]:
 
 
 # provider name -> (implementation, default model)
-PROVIDERS: dict[str, tuple[Callable[[str], LLM], str]] = {
+PROVIDERS: dict[str, tuple[Callable[..., LLM], str]] = {
     'ollama': (OllamaLLM, 'qwen3.5:9b'),
     'groq':   (GroqLLM, 'openai/gpt-oss-120b'),
 }
