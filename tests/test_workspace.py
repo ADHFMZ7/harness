@@ -327,3 +327,23 @@ async def test_search_caps_total_results_across_files(ws):
 async def test_search_cannot_escape_the_root(ws):
     with pytest.raises(PathOutsideWorkspace):
         await ws.search("secret", path="..")
+
+
+def test_protected_names_are_matched_ignoring_case(ws):
+    for path in [".ENV", ".Git/config", ".env.local", "app/.env.production"]:
+        with pytest.raises(PathDenied):
+            ws.resolve(path)
+
+
+async def test_extra_denied_patterns_block_reading_listing_and_search(tmp_path):
+    root = tmp_path / "project"
+    (root / "certs").mkdir(parents=True)
+    (root / "certs" / "server.pem").write_text("PRIVATE KEY hunter2\n")
+    (root / "notes.txt").write_text("hunter2 is the password\n")
+    ws = HostWorkspace(root, deny=["*.pem"])
+
+    with pytest.raises(PathDenied):
+        await ws.read("certs/server.pem")
+    assert await ws.list("certs") == []
+    assert "server.pem" not in await ws.search("hunter2")
+    assert "notes.txt" in await ws.search("hunter2")

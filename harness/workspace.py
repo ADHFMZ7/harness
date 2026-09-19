@@ -2,9 +2,11 @@
 # confines the agent's file access to a single directory
 
 import asyncio
+import fnmatch
 import os
 import shutil
 import tempfile
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Protocol
 
@@ -13,8 +15,10 @@ import aiofiles
 MAX_READ_BYTES = 2 * 1024 * 1024
 NEW_FILE_MODE  = 0o644
 
-# Writing into .git can corrupt the user's history, and hooks there execute.
-DENIED_NAMES = frozenset({".git", ".env"})
+# Glob patterns matched against every part of a path, ignoring case. Writing
+# into .git can corrupt the user's history, and hooks there execute; .env files
+# hold secrets, and anything the agent reads is sent to the model.
+DENIED = frozenset({".git", ".env", ".env.*"})
 
 
 # These reach the model as "ClassName: message", so both halves are interface.
@@ -42,11 +46,17 @@ class Workspace(Protocol):
 
 class HostWorkspace(Workspace):
 
-    def __init__(self, root: str | Path):
+    def __init__(self, root: str | Path, deny: Iterable[str] = ()):
         self.root = Path(root).expanduser().resolve()
+        self.denied = DENIED | frozenset(deny)
 
         if not self.root.is_dir():
             raise WorkspaceError(f"Workspace root {self.root} is not a directory.")
+
+
+    def is_denied(self, name: str) -> bool:
+        # Ignoring case matters on macOS, where .ENV opens the same file as .env.
+        return any(fnmatch.fnmatchcase(name.lower(), pattern.lower()) for pattern in self.denied)
 
 
     def resolve(self, path: str) -> Path:
@@ -77,8 +87,8 @@ class HostWorkspace(Workspace):
             )
 
         for part in target.relative_to(self.root).parts:
-            if part in DENIED_NAMES:
-                raise PathDenied(f"{path!r} is inside {part}, which is off limits.")
+            if self.is_denied(part):
+                raise PathDenied(f"{path!r} is off limits: {part!r} is protected.")
 
         return target
 
@@ -156,7 +166,7 @@ class HostWorkspace(Workspace):
         if not target.is_dir():
             raise WorkspaceError(f"{path!r} is not a directory.")
 
-        return await asyncio.to_thread(_list_dir, target)
+        return await asyncio.to_thread(_list_dir, target, self.is_denied)
 
 
     async def search(self, query: str, path: str = '.', max_results: int = 50) -> str:
@@ -174,6 +184,9 @@ class HostWorkspace(Workspace):
                 # Bounds any one pathological file. rg's own --max-count is per
                 # file, so the total the model sees is capped below instead.
                 "--max-count", str(max_results),
+                # Hidden files are skipped by default, but a denied pattern
+                # like *.pem needn't be hidden.
+                *(f"--iglob=!{pattern}" for pattern in sorted(self.denied)),
                 "-e", query,
                 "--", str(relative) if relative.parts else ".",
                 cwd=self.root,
@@ -247,11 +260,11 @@ def _write_atomic(target: Path, content: str) -> None:
         raise
 
 
-def _list_dir(target: Path) -> list[str]:
+def _list_dir(target: Path, is_denied: Callable[[str], bool]) -> list[str]:
     entries = []
 
     for entry in sorted(target.iterdir(), key=lambda path: path.name):
-        if entry.name in DENIED_NAMES:
+        if is_denied(entry.name):
             continue
         entries.append(f"{entry.name}/" if entry.is_dir() else entry.name)
 
