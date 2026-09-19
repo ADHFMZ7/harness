@@ -14,7 +14,7 @@ MAX_READ_BYTES = 2 * 1024 * 1024
 NEW_FILE_MODE  = 0o644
 
 # Writing into .git can corrupt the user's history, and hooks there execute.
-DENIED_NAMES = frozenset({".git"})
+DENIED_NAMES = frozenset({".git", ".env"})
 
 
 # These reach the model as "ClassName: message", so both halves are interface.
