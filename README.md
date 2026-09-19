@@ -48,8 +48,35 @@ harness -p groq            # run on Groq instead, defaults to openai/gpt-oss-120
 harness -w ~/code/project  # point the agent somewhere else
 ```
 
+## Settings
+
+Defaults live in `~/.config/harness/config.toml` (under `$XDG_CONFIG_HOME` if
+you set it). Flags override them. The file is created, with a commented header,
+the first time `/style` saves a choice, and your own edits and comments survive.
+
+```toml
+provider = "ollama"
+style = "tide"
+max_iterations = 40          # rounds of tool calls before a turn stops
+deny = ["*.pem", "secrets"]  # more names the agent may not touch
+
+[ollama]
+model = "qwen3.5:9b"
+num_ctx = 16384              # context window; ollama's own default is small
+think = false                # for models that can't think
+
+[groq]
+max_retries = 6              # wait out rate limits instead of failing
+```
+
+A setting harness doesn't recognise, or a value of the wrong kind, is reported
+at startup and skipped.
+
+## Workspace
+
 The agent can only reach files under the workspace directory. Paths are resolved
-before use and refused if they land outside it, `.git` is off limits, and writes
+before use and refused if they land outside it, `.git` and `.env` files are off
+limits along with anything matching `deny` in your settings, and writes
 go through a rename so a crash can't truncate a file. Version control is yours to
 manage — the harness does not checkpoint or undo anything.
 
@@ -66,6 +93,8 @@ manage — the harness does not checkpoint or undo anything.
 | `tools.py`  | the tool registry and the built-in tools |
 | `agent.py`  | the tool-calling loop |
 | `cli.py`    | the terminal front-end |
+| `styles.py` | colour schemes for the front-end — switch with `/style` |
+| `config.py` | the settings file: reading it at startup, saving to it |
 
 `Agent.run()` is an async generator. It yields `ThinkingEvent`, `ContentEvent`,
 `ToolCallEvent`, and `ToolResultEvent` as they happen, so a front-end can render
