@@ -11,14 +11,15 @@ import groq
 from dotenv import find_dotenv, load_dotenv
 from rich.console import Console, Group
 from rich.live import Live
-from rich.markdown import Markdown
+from rich.markup import escape
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from harness.agent import Agent
-from harness.cli import add_llm_arguments, make_llm, truncate
+from harness.agent import DEFAULT_MAX_ITERATIONS, Agent
+from harness.cli import AgentMarkdown, add_llm_arguments, make_llm, truncate
+from harness.config import load_config
 from harness.models import (
     ContentEvent,
     ThinkingEvent,
@@ -246,7 +247,7 @@ def report(console: Console, panes: list[Pane]) -> None:
 
     for pane in panes:
         console.print(Text(f"  {pane.number} · {pane.task}", style="bold"))
-        body = Markdown(pane.answer) if pane.answer else Text("no answer", style="dim")
+        body = AgentMarkdown(pane.answer) if pane.answer else Text("no answer", style="dim")
         console.print(Padding(body, (0, 4)))
         console.print()
 
@@ -266,12 +267,16 @@ async def main() -> None:
     )
     args = parser.parse_args()
 
+    config, problems = load_config()
     console = Console()
 
+    for problem in problems:
+        console.print(f"  [red]settings:[/] [dim]{escape(problem)}[/]")
+
     try:
-        workspace = HostWorkspace(args.workspace)
+        workspace = HostWorkspace(args.workspace, deny=config.deny)
         # One client for every agent; each agent keeps its own history.
-        llm, model = make_llm(args)
+        llm, model = make_llm(args, config)
     except (WorkspaceError, groq.GroqError) as exc:
         console.print(f"\n  [red]{exc}[/]\n")
         return
@@ -283,7 +288,9 @@ async def main() -> None:
     with Live(board.render(), console=console, auto_refresh=False) as live:
         redraw = asyncio.create_task(board.animate(live))
         try:
-            await asyncio.gather(*(drive(Agent(llm, tools), pane) for pane in panes))
+            rounds = config.max_iterations or DEFAULT_MAX_ITERATIONS
+            agents = [Agent(llm, tools, max_iterations=rounds) for _ in panes]
+            await asyncio.gather(*(drive(agent, pane) for agent, pane in zip(agents, panes, strict=True)))
         finally:
             redraw.cancel()
             live.update(board.render(), refresh=True)
