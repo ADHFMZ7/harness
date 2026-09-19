@@ -9,7 +9,9 @@ license-files = ["LICENSE"]
 authors = [{ name = "Ahmad Aldasouqi", email = "ahmadaldasouqi559@gmail.com" }]
 dependencies = [
     "aiofiles>=25.1.0",
+    "groq>=1.7.0",
     "ollama>=0.6.2",
+    "python-dotenv>=1.2.3",
     "rich>=15.0.0",
 ]
 
