@@ -20,13 +20,15 @@ class ScriptedLLM:
         self.batches = list(batches)
         self.requests: list[LLMRequest] = []
 
-    def generate(self, request):
+    async def generate(self, request):
         raise NotImplementedError
 
-    def generate_stream(self, request):
+    async def generate_stream(self, request):
         self.requests.append(request)
         if self.batches:
-            yield from self.batches.pop(0)
+            # async generators cannot use `yield from`
+            for event in self.batches.pop(0):
+                yield event
         else:
             yield ContentEvent("done")
 
@@ -34,7 +36,7 @@ class ScriptedLLM:
 class LoopingLLM(ScriptedLLM):
     """An LLM that never stops calling a tool."""
 
-    def generate_stream(self, request):
+    async def generate_stream(self, request):
         self.requests.append(request)
         yield ToolCallEvent([ToolCall("add", {"a": 1, "b": 2})])
 

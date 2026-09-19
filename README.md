@@ -16,8 +16,11 @@ is done.
 ## Requirements
 
 - Python 3.12+
-- [ollama](https://ollama.com) running locally, with a model pulled:
-  `ollama pull qwen3.5:9b`
+- A model to talk to, either:
+  - [ollama](https://ollama.com) running locally, with a model pulled:
+    `ollama pull qwen3.5:9b`
+  - or a [Groq](https://console.groq.com) API key in `GROQ_API_KEY`. A `.env`
+    file in the current directory, or a parent of it, is read at startup.
 - [ripgrep](https://github.com/BurntSushi/ripgrep) on `PATH`, for the `search_file` tool
 
 ## Install
@@ -41,6 +44,7 @@ harness
 ```sh
 harness                    # defaults to qwen3.5:9b, current directory
 harness -m llama3.2        # any model ollama has pulled
+harness -p groq            # run on Groq instead, defaults to openai/gpt-oss-120b
 harness -w ~/code/project  # point the agent somewhere else
 ```
 
@@ -57,7 +61,7 @@ manage — the harness does not checkpoint or undo anything.
 | Module | |
 |--------|-|
 | `models.py` | dataclasses for messages, tools, and the event stream |
-| `llm.py`    | the provider boundary — an `LLM` protocol plus the ollama implementation |
+| `llm.py`    | the provider boundary — an `LLM` protocol plus the ollama and Groq implementations |
 | `workspace.py` | confined, atomic filesystem access — path resolution lives here |
 | `tools.py`  | the tool registry and the built-in tools |
 | `agent.py`  | the tool-calling loop |
