@@ -5,6 +5,8 @@ import argparse
 import asyncio
 import time
 
+import groq
+from dotenv import find_dotenv, load_dotenv
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
@@ -13,7 +15,7 @@ from rich.spinner import Spinner
 from rich.text import Text
 
 from harness.agent import Agent
-from harness.llm import OllamaLLM
+from harness.llm import LLM, PROVIDERS
 from harness.models import (
     ContentEvent,
     ThinkingEvent,
@@ -24,8 +26,6 @@ from harness.models import (
 )
 from harness.tools import build_registry
 from harness.workspace import HostWorkspace, WorkspaceError
-
-DEFAULT_MODEL = "qwen3.5:9b"
 
 COMMANDS = {
     "/help":  "show this message",
@@ -184,14 +184,30 @@ def command(console: Console, agent: Agent, line: str) -> bool:
     return False
 
 
+def add_llm_arguments(parser: argparse.ArgumentParser) -> None:
+    defaults = ", ".join(f"{model} on {name}" for name, (_, model) in PROVIDERS.items())
+    parser.add_argument(
+        "-p", "--provider", choices=PROVIDERS, default="ollama",
+        help="where the model runs (default: ollama)"
+    )
+    parser.add_argument(
+        "-m", "--model",
+        help=f"model name (default: {defaults})"
+    )
+
+
+def make_llm(args: argparse.Namespace) -> tuple[LLM, str]:
+    """The LLM the command line asked for, and the name of its model."""
+    make, default_model = PROVIDERS[args.provider]
+    model = args.model or default_model
+    return make(model), model
+
+
 async def main() -> None:
     parser = argparse.ArgumentParser(
         prog="harness", description="chat with a tool-using agent"
     )
-    parser.add_argument(
-        "-m", "--model", default=DEFAULT_MODEL, 
-        help=f"ollama model (default: {DEFAULT_MODEL})"
-    )
+    add_llm_arguments(parser)
     parser.add_argument(
         "-w", "--workspace", default=".",
         help="directory the agent may read and write (default: the current one)"
@@ -202,15 +218,16 @@ async def main() -> None:
 
     try:
         workspace = HostWorkspace(args.workspace)
-    except WorkspaceError as exc:
+        llm, model = make_llm(args)
+    except (WorkspaceError, groq.GroqError) as exc:
         console.print(f"\n  [red]{exc}[/]\n")
         return
 
-    agent = Agent(OllamaLLM(args.model), build_registry(workspace))
+    agent = Agent(llm, build_registry(workspace))
     view = View(console)
 
     console.print()
-    console.print(f"  [bold cyan]harness[/] [dim]· {args.model}[/]")
+    console.print(f"  [bold cyan]harness[/] [dim]· {model}[/]")
     console.print(f"  [dim]workspace · {workspace.root}[/]")
     console.print("  [dim]/help for commands · ctrl-d to exit[/]")
     console.print()
@@ -236,6 +253,8 @@ async def main() -> None:
 
 def run() -> None:
     """Console-script entry point."""
+    # API keys, e.g. GROQ_API_KEY, can live in a .env file.
+    load_dotenv(find_dotenv(usecwd=True))
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
