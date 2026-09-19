@@ -33,6 +33,16 @@ def ws(tmp_path):
 
 
 @pytest.fixture
+def denied(tmp_path):
+    """A workspace with an extra deny pattern, and a secret on both sides of it."""
+    root = tmp_path / "project"
+    (root / "certs").mkdir(parents=True)
+    (root / "certs" / "server.pem").write_text("PRIVATE KEY hunter2\n")
+    (root / "notes.txt").write_text("hunter2 is the password\n")
+    return HostWorkspace(root, deny=["*.pem"])
+
+
+@pytest.fixture
 def sample(ws):
     path = ws.root / "sample.txt"
     path.write_text("".join(LINES))
@@ -327,3 +337,21 @@ async def test_search_caps_total_results_across_files(ws):
 async def test_search_cannot_escape_the_root(ws):
     with pytest.raises(PathOutsideWorkspace):
         await ws.search("secret", path="..")
+
+
+def test_protected_names_are_matched_ignoring_case(ws):
+    for path in [".ENV", ".Git/config", ".env.local", "app/.env.production"]:
+        with pytest.raises(PathDenied):
+            ws.resolve(path)
+
+
+async def test_extra_denied_patterns_block_reading_and_listing(denied):
+    with pytest.raises(PathDenied):
+        await denied.read("certs/server.pem")
+    assert await denied.list("certs") == []
+
+
+@needs_ripgrep
+async def test_extra_denied_patterns_are_left_out_of_search(denied):
+    assert "server.pem" not in await denied.search("hunter2")
+    assert "notes.txt" in await denied.search("hunter2")

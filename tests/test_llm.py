@@ -88,3 +88,20 @@ def test_groq_schema_requires_only_parameters_without_defaults(tmp_path):
         "start_line": {"type": "integer"},
         "end_line": {"type": "integer"},
     }
+
+
+async def test_ollama_sends_the_context_size_and_thinking_setting():
+    sent = []
+
+    async def chat(request: httpx.Request) -> httpx.Response:
+        sent.append(json.loads(request.content))
+        return await slow_chat(request)
+
+    llm = OllamaLLM("fake", num_ctx=16384, think=False)
+    llm.client = ollama.AsyncClient(transport=httpx.MockTransport(chat))
+
+    request = LLMRequest([Message(Role.USER, "hi")], [])
+    [event async for event in llm.generate_stream(request)]
+
+    assert sent[0]["options"] == {"num_ctx": 16384}
+    assert sent[0]["think"] is False
