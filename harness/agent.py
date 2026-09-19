@@ -53,7 +53,7 @@ class Agent:
             content =  []
             tools =    []
 
-            for event in stream:
+            async for event in stream:
 
                 match event:
 

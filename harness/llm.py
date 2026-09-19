@@ -1,7 +1,7 @@
 # llm.py
 # abstraction for llm calls
 
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from typing import Any, Protocol
 
 import ollama
@@ -21,18 +21,19 @@ from harness.models import (
 
 
 class LLM(Protocol):
-    def generate(self, request: LLMRequest) -> LLMResponse: ...
-    def generate_stream(self, request: LLMRequest) -> Generator[AgentEvent, None, None]: ...
+    async def generate(self, request: LLMRequest) -> LLMResponse: ...
+    def generate_stream(self, request: LLMRequest) -> AsyncGenerator[AgentEvent, None]: ...
 
 
 class OllamaLLM(LLM):
 
     def __init__(self, model: str = 'qwen3.5:9b'):
         self.model = model
+        self.client = ollama.AsyncClient()
 
-    def generate(self, request: LLMRequest) -> LLMResponse:
+    async def generate(self, request: LLMRequest) -> LLMResponse:
 
-        response = ollama.chat(
+        response = await self.client.chat(
             model=self.model,
             tools=[tool.function for tool in request.tools],
             messages=[self.to_ollama(message) for message in request.messages],
@@ -49,9 +50,9 @@ class OllamaLLM(LLM):
         )
 
 
-    def generate_stream(self, request: LLMRequest) -> Generator[AgentEvent, None, None]:
+    async def generate_stream(self, request: LLMRequest) -> AsyncGenerator[AgentEvent, None]:
 
-        response = ollama.chat(
+        response = await self.client.chat(
             model=self.model,
             tools=[tool.function for tool in request.tools],
             messages=[self.to_ollama(message) for message in request.messages],
@@ -59,7 +60,7 @@ class OllamaLLM(LLM):
             stream=True
         )
 
-        for chunk in response:
+        async for chunk in response:
             message = chunk.message
 
             if message.thinking:
