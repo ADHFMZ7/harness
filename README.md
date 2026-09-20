@@ -96,12 +96,15 @@ terminal library, so it can be embedded, or driven by a front-end of your own.
 | `tools.py`  | the tool registry and the built-in tools |
 | `agent.py`  | the tool-calling loop |
 
-| front-end | |
+| `harness/cli/` | |
 |--------|-|
-| `cli.py`    | the terminal front-end |
-| `panels.py` | several agents at once, one panel each |
-| `styles.py` | colour schemes for the front-end — switch with `/style` |
+| `app.py`    | wires a session together and owns the chat loop |
+| `view.py`   | renders the event stream — markdown, tool calls, the live block |
+| `prompt.py` | the input line: slash commands and completion |
+| `options.py`| flags and the settings file, resolved into an LLM |
+| `styles.py` | colour schemes — switch with `/style` |
 | `config.py` | the settings file: reading it at startup, saving to it |
+| `panels.py` | a second front-end — several agents at once, one panel each, over the same core (`python -m harness.cli.panels`) |
 
 `Agent.run()` is an async generator. It yields `ThinkingEvent`, `ContentEvent`,
 `ToolCallEvent`, and `ToolResultEvent` as they happen, so a front-end can render

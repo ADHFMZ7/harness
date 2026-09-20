@@ -17,8 +17,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from harness.cli import AgentMarkdown, add_llm_arguments, make_llm, truncate
-from harness.config import load_config
+from harness.cli.config import load_config
+from harness.cli.options import add_llm_arguments, make_llm
+from harness.cli.view import AgentMarkdown, truncate
 from harness.core.agent import DEFAULT_MAX_ITERATIONS, Agent
 from harness.core.models import (
     ContentEvent,
@@ -254,7 +255,7 @@ def report(console: Console, panes: list[Pane]) -> None:
 
 async def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="harness.panels", description="run several agents at once, one panel each"
+        prog="harness.cli.panels", description="run several agents at once, one panel each"
     )
     parser.add_argument(
         "tasks", nargs="*",

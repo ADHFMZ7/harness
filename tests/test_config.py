@@ -2,8 +2,8 @@ import argparse
 
 import pytest
 
-from harness.cli import make_llm
-from harness.config import Config, ConfigError, load_config, save_setting
+from harness.cli.config import Config, ConfigError, load_config, save_setting
+from harness.cli.options import make_llm
 from harness.core.llm import GroqLLM, OllamaLLM
 
 

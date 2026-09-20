@@ -10,8 +10,8 @@ from typing import Any
 import tomlkit
 from tomlkit.exceptions import TOMLKitError
 
+from harness.cli.styles import SCHEMES
 from harness.core.llm import PROVIDERS
-from harness.styles import SCHEMES
 
 # Written out the first time harness saves a setting, so the file documents itself.
 TEMPLATE = '''\

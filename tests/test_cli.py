@@ -13,19 +13,13 @@ from rich.padding import Padding
 from rich.style import Style
 
 from harness import cli
-from harness.cli import (
-    COMMANDS,
-    AgentMarkdown,
-    CommandCompleter,
-    View,
-    command,
-    prompt_session,
-    settled,
-)
-from harness.config import load_config
+from harness.cli.app import command
+from harness.cli.config import load_config
+from harness.cli.prompt import COMMANDS, CommandCompleter, prompt_session
+from harness.cli.styles import DEFAULT, SCHEMES
+from harness.cli.view import AgentMarkdown, View, settled
 from harness.core.agent import Agent
 from harness.core.tools import ToolRegistry
-from harness.styles import DEFAULT, SCHEMES
 
 
 def completions(text: str) -> list[str]:
@@ -191,8 +185,19 @@ def test_switching_schemes_replaces_the_old_styles():
 
 
 def test_every_scheme_defines_every_style_the_cli_uses():
-    used = set(re.findall(r'"(harness\.[a-z.]+)"', Path(cli.__file__).read_text()))
-    used |= set(re.findall(r"\[(harness\.[a-z.]+)\]", Path(cli.__file__).read_text()))
+    # The whole package, not one module: the styles are spread across view,
+    # prompt and app, and scanning a single file would pass on an empty set.
+    # An argparse prog reads as a dotted harness name too, so those lines go.
+    source = "".join(
+        line
+        for path in Path(cli.__file__).parent.glob("*.py")
+        for line in path.read_text().splitlines(keepends=True)
+        if "prog=" not in line
+    )
+    used = set(re.findall(r'"(harness\.[a-z.]+)"', source))
+    used |= set(re.findall(r"\[(harness\.[a-z.]+)\]", source))
+
+    assert used, "found no styles to check — the scan is pointed at the wrong place"
 
     for scheme in SCHEMES.values():
         assert used <= scheme.styles.keys(), scheme.name
