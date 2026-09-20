@@ -7,7 +7,6 @@ import math
 import time
 from dataclasses import dataclass
 
-import groq
 from dotenv import find_dotenv, load_dotenv
 from rich.console import Console, Group
 from rich.live import Live
@@ -21,6 +20,7 @@ from harness.cli.config import load_config
 from harness.cli.options import add_llm_arguments, make_llm
 from harness.cli.view import AgentMarkdown, truncate
 from harness.core.agent import DEFAULT_MAX_ITERATIONS, Agent
+from harness.core.llm import ProviderError
 from harness.core.models import (
     ContentEvent,
     ThinkingEvent,
@@ -278,7 +278,7 @@ async def main() -> None:
         workspace = HostWorkspace(args.workspace, deny=config.deny)
         # One client for every agent; each agent keeps its own history.
         llm, model = make_llm(args, config)
-    except (WorkspaceError, groq.GroqError) as exc:
+    except (WorkspaceError, ProviderError) as exc:
         console.print(f"\n  [red]{exc}[/]\n")
         return
 

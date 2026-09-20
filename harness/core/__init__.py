@@ -12,7 +12,7 @@ vocabulary its stream is made of lives in `harness.core.models`.
 """
 
 from harness.core.agent import DEFAULT_MAX_ITERATIONS, Agent, IterationLimit
-from harness.core.llm import LLM, PROVIDERS, GroqLLM, OllamaLLM
+from harness.core.llm import LLM, PROVIDERS, GroqLLM, OllamaLLM, ProviderError
 from harness.core.tools import ToolRegistry, build_registry
 from harness.core.workspace import (
     HostWorkspace,
@@ -33,6 +33,7 @@ __all__ = [
     "OllamaLLM",
     "PathDenied",
     "PathOutsideWorkspace",
+    "ProviderError",
     "ToolRegistry",
     "Workspace",
     "WorkspaceError",

@@ -5,7 +5,6 @@ import argparse
 import asyncio
 from pathlib import Path
 
-import groq
 from dotenv import find_dotenv, load_dotenv
 from rich.console import Console
 from rich.markup import escape
@@ -17,6 +16,7 @@ from harness.cli.prompt import COMMANDS, prompt_marker, prompt_session
 from harness.cli.styles import DEFAULT, SCHEMES
 from harness.cli.view import View, truncate
 from harness.core.agent import DEFAULT_MAX_ITERATIONS, Agent
+from harness.core.llm import ProviderError
 from harness.core.models import (
     ContentEvent,
     ThinkingEvent,
@@ -153,7 +153,7 @@ async def main() -> None:
     try:
         workspace = HostWorkspace(args.workspace, deny=config.deny)
         llm, model = make_llm(args, config)
-    except (WorkspaceError, groq.GroqError) as exc:
+    except (WorkspaceError, ProviderError) as exc:
         console.print(f"\n  [harness.error]{escape(str(exc))}[/]\n")
         return
 

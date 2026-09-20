@@ -6,6 +6,8 @@ every other test runs in a process where a front-end is already loaded. These
 run in a fresh interpreter, where the import is the whole test.
 """
 
+import pathlib
+import re
 import subprocess
 import sys
 
@@ -57,3 +59,25 @@ def test_public_surface_is_importable():
     )
 
     assert result.returncode == 0, result.stderr
+
+
+def test_the_front_end_names_no_provider_sdk():
+    """A front-end should not have to know which provider it built.
+
+    Catching a provider's own error type means importing its SDK, and then
+    every new provider edits every front-end. `ProviderError` is what the core
+    promises instead, so nothing under `harness/cli/` mentions an SDK by name.
+    """
+    import harness.cli
+
+    package = pathlib.Path(harness.cli.__file__).parent
+    offenders = {
+        path.name: [
+            line.strip()
+            for line in path.read_text().splitlines()
+            if re.match(r"^\s*(import|from)\s+(groq|ollama)\b", line)
+        ]
+        for path in sorted(package.glob("*.py"))
+    }
+
+    assert not {name: found for name, found in offenders.items() if found}
