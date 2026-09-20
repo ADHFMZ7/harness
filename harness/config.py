@@ -10,7 +10,7 @@ from typing import Any
 import tomlkit
 from tomlkit.exceptions import TOMLKitError
 
-from harness.llm import PROVIDERS
+from harness.core.llm import PROVIDERS
 from harness.styles import SCHEMES
 
 # Written out the first time harness saves a setting, so the file documents itself.

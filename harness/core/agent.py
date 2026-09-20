@@ -2,8 +2,8 @@
 
 import asyncio
 
-from harness.llm import LLM
-from harness.models import (
+from harness.core.llm import LLM
+from harness.core.models import (
     ContentEvent,
     LLMRequest,
     Message,
@@ -14,7 +14,7 @@ from harness.models import (
     ToolResult,
     ToolResultEvent,
 )
-from harness.tools import ToolRegistry
+from harness.core.tools import ToolRegistry
 
 # Agent needs some sort of memory later
 

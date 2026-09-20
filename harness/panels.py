@@ -17,10 +17,10 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from harness.agent import DEFAULT_MAX_ITERATIONS, Agent
 from harness.cli import AgentMarkdown, add_llm_arguments, make_llm, truncate
 from harness.config import load_config
-from harness.models import (
+from harness.core.agent import DEFAULT_MAX_ITERATIONS, Agent
+from harness.core.models import (
     ContentEvent,
     ThinkingEvent,
     ToolCall,
@@ -28,8 +28,8 @@ from harness.models import (
     ToolResult,
     ToolResultEvent,
 )
-from harness.tools import ToolRegistry, build_registry
-from harness.workspace import HostWorkspace, WorkspaceError
+from harness.core.tools import ToolRegistry, build_registry
+from harness.core.workspace import HostWorkspace, WorkspaceError
 
 DEFAULT_TASKS = [
     "List the files in the workspace and say in two sentences what this project is.",

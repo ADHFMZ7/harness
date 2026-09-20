@@ -5,10 +5,17 @@ import json
 import httpx
 import ollama
 
-from harness.llm import GroqLLM, OllamaLLM, to_groq_tool
-from harness.models import ContentEvent, LLMRequest, Message, Role, ToolCall, ToolResult
-from harness.tools import build_registry
-from harness.workspace import HostWorkspace
+from harness.core.llm import GroqLLM, OllamaLLM, to_groq_tool
+from harness.core.models import (
+    ContentEvent,
+    LLMRequest,
+    Message,
+    Role,
+    ToolCall,
+    ToolResult,
+)
+from harness.core.tools import build_registry
+from harness.core.workspace import HostWorkspace
 
 CHUNKS = ["one ", "two ", "three"]
 

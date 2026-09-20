@@ -11,7 +11,7 @@ from typing import Any, Protocol, Union, get_args, get_origin, get_type_hints
 import groq
 import ollama
 
-from harness.models import (
+from harness.core.models import (
     AgentEvent,
     ContentEvent,
     LLMRequest,

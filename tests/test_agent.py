@@ -1,7 +1,7 @@
 import pytest
 
-from harness.agent import Agent, IterationLimit
-from harness.models import (
+from harness.core.agent import Agent, IterationLimit
+from harness.core.models import (
     ContentEvent,
     LLMRequest,
     Message,
@@ -9,8 +9,8 @@ from harness.models import (
     ToolCallEvent,
     ToolResult,
 )
-from harness.tools import build_registry
-from harness.workspace import HostWorkspace
+from harness.core.tools import build_registry
+from harness.core.workspace import HostWorkspace
 
 
 class ScriptedLLM:

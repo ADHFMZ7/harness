@@ -13,7 +13,6 @@ from rich.padding import Padding
 from rich.style import Style
 
 from harness import cli
-from harness.agent import Agent
 from harness.cli import (
     COMMANDS,
     AgentMarkdown,
@@ -24,8 +23,9 @@ from harness.cli import (
     settled,
 )
 from harness.config import load_config
+from harness.core.agent import Agent
+from harness.core.tools import ToolRegistry
 from harness.styles import DEFAULT, SCHEMES
-from harness.tools import ToolRegistry
 
 
 def completions(text: str) -> list[str]:

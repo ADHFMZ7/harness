@@ -85,14 +85,21 @@ manage — the harness does not checkpoint or undo anything.
 
 ## How it works
 
-| Module | |
+`harness.core` is the agent and everything it needs to run. It imports no
+terminal library, so it can be embedded, or driven by a front-end of your own.
+
+| `harness/core/` | |
 |--------|-|
 | `models.py` | dataclasses for messages, tools, and the event stream |
 | `llm.py`    | the provider boundary — an `LLM` protocol plus the ollama and Groq implementations |
 | `workspace.py` | confined, atomic filesystem access — path resolution lives here |
 | `tools.py`  | the tool registry and the built-in tools |
 | `agent.py`  | the tool-calling loop |
+
+| front-end | |
+|--------|-|
 | `cli.py`    | the terminal front-end |
+| `panels.py` | several agents at once, one panel each |
 | `styles.py` | colour schemes for the front-end — switch with `/style` |
 | `config.py` | the settings file: reading it at startup, saving to it |
 
@@ -112,6 +119,21 @@ a single workspace, so a tool never reaches the filesystem directly:
 async def list_files(dir_path: str = '.') -> list[str]:
     '''lists files in directory specified by path'''
     return await workspace.list(dir_path)
+```
+
+Driving the agent yourself is the same three pieces the CLI wires up — a
+workspace, a provider, and the tools bound to that workspace:
+
+```python
+from harness.core import Agent, HostWorkspace, OllamaLLM, build_registry
+from harness.core.models import ContentEvent
+
+workspace = HostWorkspace("./project", deny=["*.pem"])
+agent = Agent(OllamaLLM("qwen3.5:9b"), build_registry(workspace))
+
+async for event in agent.run("what does workspace.py do?"):
+    if isinstance(event, ContentEvent):
+        print(event.content, end="", flush=True)
 ```
 
 ## Development

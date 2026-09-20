@@ -2,8 +2,8 @@ import shutil
 
 import pytest
 
-from harness import workspace as workspace_module
-from harness.workspace import (
+from harness.core import workspace as workspace_module
+from harness.core.workspace import (
     HostWorkspace,
     PathDenied,
     PathOutsideWorkspace,

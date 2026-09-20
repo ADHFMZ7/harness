@@ -4,7 +4,7 @@ import pytest
 
 from harness.cli import make_llm
 from harness.config import Config, ConfigError, load_config, save_setting
-from harness.llm import GroqLLM, OllamaLLM
+from harness.core.llm import GroqLLM, OllamaLLM
 
 
 def test_a_missing_file_means_no_settings(settings_home):

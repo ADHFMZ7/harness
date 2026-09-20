@@ -1,7 +1,7 @@
 import pytest
 
-from harness.tools import build_registry
-from harness.workspace import HostWorkspace, PathOutsideWorkspace
+from harness.core.tools import build_registry
+from harness.core.workspace import HostWorkspace, PathOutsideWorkspace
 
 LINES = [f"line{i}\n" for i in range(1, 11)]
 

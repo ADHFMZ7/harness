@@ -25,10 +25,10 @@ from rich.spinner import Spinner
 from rich.table import Table
 from rich.text import Text
 
-from harness.agent import DEFAULT_MAX_ITERATIONS, Agent
 from harness.config import Config, ConfigError, config_path, load_config, save_setting
-from harness.llm import LLM, PROVIDERS
-from harness.models import (
+from harness.core.agent import DEFAULT_MAX_ITERATIONS, Agent
+from harness.core.llm import LLM, PROVIDERS
+from harness.core.models import (
     ContentEvent,
     ThinkingEvent,
     ToolCall,
@@ -36,9 +36,9 @@ from harness.models import (
     ToolResult,
     ToolResultEvent,
 )
+from harness.core.tools import build_registry
+from harness.core.workspace import HostWorkspace, WorkspaceError
 from harness.styles import DEFAULT, SCHEMES, Scheme
-from harness.tools import build_registry
-from harness.workspace import HostWorkspace, WorkspaceError
 
 COMMANDS = {
     "/help":  "show this message",
