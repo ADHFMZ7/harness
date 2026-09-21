@@ -1,6 +1,7 @@
 # agent.py
 
 import asyncio
+from pathlib import Path
 
 from harness.core.llm import LLM
 from harness.core.models import (
@@ -27,13 +28,26 @@ class IterationLimit(RuntimeError):
 
 class Agent:
 
-    def __init__(self, llm: LLM, tools: ToolRegistry,
+    def __init__(self, llm: LLM, tools: ToolRegistry, system: str = '',
                  max_iterations: int = DEFAULT_MAX_ITERATIONS):
         self.llm   = llm
         self.tools = tools
+        self.system = system
 
         self.max_iterations = max_iterations
+
+        if not system:
+            system_path = Path(__file__).parent / "prompts" / "system_prompt.md"
+            self.system = system_path.read_text()
+
         self.history: list[Message | ToolResult] = []
+        self.reset()
+
+
+    # Temporary until context is implemented
+    def reset(self) -> None:
+        """Forget the conversation so far, but not who the agent is."""
+        self.history = [Message(Role.SYSTEM, self.system)]
 
 
     async def run(self, prompt: str):

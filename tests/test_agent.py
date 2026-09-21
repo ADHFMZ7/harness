@@ -5,6 +5,7 @@ from harness.core.models import (
     ContentEvent,
     LLMRequest,
     Message,
+    Role,
     ToolCall,
     ToolCallEvent,
     ToolResult,
@@ -58,7 +59,8 @@ async def test_a_turn_without_tool_calls_ends(registry):
     events = await drain(agent)
 
     assert [type(e) for e in events] == [ContentEvent]
-    assert len(agent.history) == 2
+    # The roles rather than the count, so it says what the history holds.
+    assert [m.role for m in agent.history] == [Role.SYSTEM, Role.USER, Role.AGENT]
 
 
 async def test_tool_results_are_fed_back(registry):
@@ -118,3 +120,30 @@ async def test_an_unknown_tool_comes_back_as_an_error_result(registry):
     result = next(item for item in agent.history if isinstance(item, ToolResult))
     assert result.is_error
     assert "No tool named" in result.result
+
+
+async def test_the_system_prompt_opens_the_history(registry):
+    agent = Agent(ScriptedLLM(), registry, system="YOU ARE THE SCOUT")
+
+    assert agent.history[0] == Message(Role.SYSTEM, "YOU ARE THE SCOUT")
+
+
+async def test_a_default_agent_gets_the_packaged_system_prompt(registry):
+    agent = Agent(ScriptedLLM(), registry)
+
+    assert agent.history[0].role is Role.SYSTEM
+    assert agent.history[0].content.strip()
+
+
+async def test_clearing_the_conversation_keeps_the_system_prompt(registry):
+    # /clear used to empty the history outright, which quietly took the agent's
+    # identity with it: every turn after it ran with no system prompt at all.
+    agent = Agent(ScriptedLLM([ContentEvent("hi")]), registry, system="YOU ARE THE SCOUT")
+    await drain(agent)
+
+    agent.reset()
+
+    assert agent.history == [Message(Role.SYSTEM, "YOU ARE THE SCOUT")]
+
+    await drain(agent)
+    assert [m.role for m in agent.history] == [Role.SYSTEM, Role.USER, Role.AGENT]

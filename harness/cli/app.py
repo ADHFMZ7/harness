@@ -68,7 +68,7 @@ def command(console: Console, agent: Agent, view: View, line: str) -> bool:
             return True
 
         case "/clear":
-            agent.history.clear()
+            agent.reset()
             console.print("  [harness.muted]conversation cleared[/]\n")
 
         case "/tools":

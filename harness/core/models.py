@@ -31,9 +31,10 @@ class ToolResult:
     is_error:  bool = field(default=False)
 
 class Role(Enum):
-    USER  = 'user'
-    AGENT = 'assistant'
-    TOOL  = 'tool'
+    USER   = 'user'
+    AGENT  = 'assistant'
+    TOOL   = 'tool'
+    SYSTEM = 'system'
 
 @dataclass
 class Message:
