@@ -4,11 +4,19 @@ import json
 
 import httpx
 import ollama
+import pytest
 
-from harness.llm import GroqLLM, OllamaLLM, to_groq_tool
-from harness.models import ContentEvent, LLMRequest, Message, Role, ToolCall, ToolResult
-from harness.tools import build_registry
-from harness.workspace import HostWorkspace
+from harness.core.llm import GroqLLM, OllamaLLM, ProviderError, to_groq_tool
+from harness.core.models import (
+    ContentEvent,
+    LLMRequest,
+    Message,
+    Role,
+    ToolCall,
+    ToolResult,
+)
+from harness.core.tools import build_registry
+from harness.core.workspace import HostWorkspace
 
 CHUNKS = ["one ", "two ", "three"]
 
@@ -105,3 +113,14 @@ async def test_ollama_sends_the_context_size_and_thinking_setting():
 
     assert sent[0]["options"] == {"num_ctx": 16384}
     assert sent[0]["think"] is False
+
+
+def test_a_missing_api_key_raises_a_provider_error(monkeypatch):
+    # The front-ends catch this. If it came back as groq's own error type they
+    # would each have to import groq to name it.
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+    with pytest.raises(ProviderError) as caught:
+        GroqLLM()
+
+    assert "api_key" in str(caught.value)

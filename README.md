@@ -48,8 +48,35 @@ harness -p groq            # run on Groq instead, defaults to openai/gpt-oss-120
 harness -w ~/code/project  # point the agent somewhere else
 ```
 
+## Settings
+
+Defaults live in `~/.config/harness/config.toml` (under `$XDG_CONFIG_HOME` if
+you set it). Flags override them. The file is created, with a commented header,
+the first time `/style` saves a choice, and your own edits and comments survive.
+
+```toml
+provider = "ollama"
+style = "tide"
+max_iterations = 40          # rounds of tool calls before a turn stops
+deny = ["*.pem", "secrets"]  # more names the agent may not touch
+
+[ollama]
+model = "qwen3.5:9b"
+num_ctx = 16384              # context window; ollama's own default is small
+think = false                # for models that can't think
+
+[groq]
+max_retries = 6              # wait out rate limits instead of failing
+```
+
+A setting harness doesn't recognise, or a value of the wrong kind, is reported
+at startup and skipped.
+
+## Workspace
+
 The agent can only reach files under the workspace directory. Paths are resolved
-before use and refused if they land outside it, `.git` is off limits, and writes
+before use and refused if they land outside it, `.git` and `.env` files are off
+limits along with anything matching `deny` in your settings, and writes
 go through a rename so a crash can't truncate a file. Version control is yours to
 manage — the harness does not checkpoint or undo anything.
 
@@ -58,14 +85,26 @@ manage — the harness does not checkpoint or undo anything.
 
 ## How it works
 
-| Module | |
+`harness.core` is the agent and everything it needs to run. It imports no
+terminal library, so it can be embedded, or driven by a front-end of your own.
+
+| `harness/core/` | |
 |--------|-|
 | `models.py` | dataclasses for messages, tools, and the event stream |
 | `llm.py`    | the provider boundary — an `LLM` protocol plus the ollama and Groq implementations |
 | `workspace.py` | confined, atomic filesystem access — path resolution lives here |
 | `tools.py`  | the tool registry and the built-in tools |
 | `agent.py`  | the tool-calling loop |
-| `cli.py`    | the terminal front-end |
+
+| `harness/cli/` | |
+|--------|-|
+| `app.py`    | wires a session together and owns the chat loop |
+| `view.py`   | renders the event stream — markdown, tool calls, the live block |
+| `prompt.py` | the input line: slash commands and completion |
+| `options.py`| flags and the settings file, resolved into an LLM |
+| `styles.py` | colour schemes — switch with `/style` |
+| `config.py` | the settings file: reading it at startup, saving to it |
+| `panels.py` | a second front-end — several agents at once, one panel each, over the same core (`python -m harness.cli.panels`) |
 
 `Agent.run()` is an async generator. It yields `ThinkingEvent`, `ContentEvent`,
 `ToolCallEvent`, and `ToolResultEvent` as they happen, so a front-end can render
@@ -83,6 +122,21 @@ a single workspace, so a tool never reaches the filesystem directly:
 async def list_files(dir_path: str = '.') -> list[str]:
     '''lists files in directory specified by path'''
     return await workspace.list(dir_path)
+```
+
+Driving the agent yourself is the same three pieces the CLI wires up — a
+workspace, a provider, and the tools bound to that workspace:
+
+```python
+from harness.core import Agent, HostWorkspace, OllamaLLM, build_registry
+from harness.core.models import ContentEvent
+
+workspace = HostWorkspace("./project", deny=["*.pem"])
+agent = Agent(OllamaLLM("qwen3.5:9b"), build_registry(workspace))
+
+async for event in agent.run("what does workspace.py do?"):
+    if isinstance(event, ContentEvent):
+        print(event.content, end="", flush=True)
 ```
 
 ## Development

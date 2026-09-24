@@ -1,9 +1,10 @@
+import os
 import shutil
 
 import pytest
 
-from harness import workspace as workspace_module
-from harness.workspace import (
+from harness.core import workspace as workspace_module
+from harness.core.workspace import (
     HostWorkspace,
     PathDenied,
     PathOutsideWorkspace,
@@ -12,8 +13,14 @@ from harness.workspace import (
 
 LINES = [f"line{i}\n" for i in range(1, 11)]
 
+# Search shells out to ripgrep. Skipping when it is missing is a convenience
+# for a machine that hasn't got it; on CI it is a hole, because these cover the
+# deny list and a security test that quietly skips is worse than one nobody
+# wrote. So CI never skips: if the workflow stops installing ripgrep, these
+# fail instead of disappearing.
 needs_ripgrep = pytest.mark.skipif(
-    shutil.which("rg") is None, reason="ripgrep is not installed"
+    shutil.which("rg") is None and not os.environ.get("CI"),
+    reason="ripgrep is not installed",
 )
 
 

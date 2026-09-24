@@ -11,7 +11,7 @@ from typing import Any, Protocol, Union, get_args, get_origin, get_type_hints
 import groq
 import ollama
 
-from harness.models import (
+from harness.core.models import (
     AgentEvent,
     ContentEvent,
     LLMRequest,
@@ -24,6 +24,13 @@ from harness.models import (
     ToolCallEvent,
     ToolResult,
 )
+
+# Each provider's SDK raises its own type. A front-end that had to catch those
+# would have to import every SDK, and know which provider it built — so setting
+# one up raises this instead, and the SDKs stay behind the boundary.
+
+class ProviderError(Exception):
+    '''A provider could not be set up.'''
 
 
 class LLM(Protocol):
@@ -122,9 +129,13 @@ class GroqLLM(LLM):
     def __init__(self, model: str = 'openai/gpt-oss-120b', api_key: str | None = None,
                  max_retries: int = 2):
         self.model = model
-        # Without an api_key the client reads GROQ_API_KEY from the environment.
+        # Without an api_key the client reads GROQ_API_KEY from the environment,
+        # and complains here if it finds neither.
         # Retries back off, and wait out a rate limit when Groq says how long.
-        self.client = groq.AsyncGroq(api_key=api_key, max_retries=max_retries)
+        try:
+            self.client = groq.AsyncGroq(api_key=api_key, max_retries=max_retries)
+        except groq.GroqError as exc:
+            raise ProviderError(str(exc)) from exc
 
     async def generate(self, request: LLMRequest) -> LLMResponse:
 

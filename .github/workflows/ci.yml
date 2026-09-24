@@ -6,6 +6,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # search_file shells out to ripgrep, which the runner image does not
+      # carry. Without this the workspace search tests skip and CI goes green
+      # having never run them.
+      - name: Install ripgrep
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true

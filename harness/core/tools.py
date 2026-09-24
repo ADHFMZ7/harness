@@ -5,8 +5,8 @@
 from collections.abc import Callable
 from typing import Any
 
-from harness.models import Tool
-from harness.workspace import Workspace
+from harness.core.models import Tool
+from harness.core.workspace import Workspace
 
 '''
 Tools I eventually want to support

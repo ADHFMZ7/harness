@@ -10,9 +10,12 @@ authors = [{ name = "Ahmad Aldasouqi", email = "ahmadaldasouqi559@gmail.com" }]
 dependencies = [
     "aiofiles>=25.1.0",
     "groq>=1.7.0",
+    "markdown-it-py>=4.2.0",
     "ollama>=0.6.2",
+    "prompt-toolkit>=3.0.53",
     "python-dotenv>=1.2.3",
     "rich>=15.0.0",
+    "tomlkit>=0.15.1",
 ]
 
 [project.urls]
